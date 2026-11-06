@@ -15,6 +15,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional, List
 import asyncio
+import hashlib
 import urllib.parse
 from datetime import datetime, timedelta
 
@@ -49,6 +50,8 @@ OUTPUTS_DIR = ROOT_DIR / "outputs" / "generated"
 OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 REFS_DIR = ROOT_DIR / "outputs" / "references"
 REFS_DIR.mkdir(parents=True, exist_ok=True)
+PREVIEWS_DIR = ROOT_DIR / "outputs" / "cache" / "previews"
+PREVIEWS_DIR.mkdir(parents=True, exist_ok=True)
 HISTORY_INDEX = OUTPUTS_DIR / "history.json"
 CUSTOM_VOICES_FILE = OUTPUTS_DIR / "custom_voices.json"
 
@@ -349,10 +352,11 @@ def _pcm16(audio_f32: np.ndarray) -> bytes:
     return (np.asarray(audio_f32) * 32767).clip(-32768, 32767).astype(np.int16).tobytes()
 
 
-# --- 2. SERVICE: STREAMING AUDIO FOR VOICE EXPLORER ---
+# --- 2. SERVICE: STREAMING & INSTANT AUDIO PREVIEW FOR VOICE EXPLORER ---
 @app.get("/api/stream")
-async def stream_audio(text: str, voice_id: Optional[str] = None):
-    # Check if voice_id is Japanese custom voice or contains Japanese characters
+@app.get("/api/preview")
+def stream_audio(text: str = "", voice_id: Optional[str] = None):
+    # Check if voice_id is custom voice
     custom_voice = None
     if CUSTOM_VOICES_FILE.exists():
         try:
@@ -361,59 +365,71 @@ async def stream_audio(text: str, voice_id: Optional[str] = None):
         except Exception:
             pass
 
+    clean_text = (text or "").strip()
     is_ja_voice = custom_voice and custom_voice.get("language") in ("ja", "japanese", "tiếng nhật")
-    has_ja_chars = any('\u3040' <= c <= '\u30ff' or '\u4e00' <= c <= '\u9faf' for c in text)
+    has_ja_chars = any('\u3040' <= c <= '\u30ff' or '\u4e00' <= c <= '\u9faf' for c in clean_text)
 
+    # Check local disk cache for instant playback (< 2ms)
+    cache_key = hashlib.md5(f"{voice_id}_{clean_text}".encode()).hexdigest()
+    cache_file = PREVIEWS_DIR / f"{cache_key}.wav"
+    if cache_file.exists():
+        return FileResponse(cache_file, media_type="audio/wav")
+
+    # If custom voice reference audio exists and no custom text
+    if custom_voice and os.path.exists(custom_voice.get("ref_path", "")):
+        if not clean_text or clean_text.lower() in ("mẫu", "mẫu_giọng_gốc"):
+            return FileResponse(custom_voice["ref_path"], media_type="audio/wav")
+
+    # Japanese Voice Preview
     if (is_ja_voice and custom_voice and os.path.exists(custom_voice.get("ref_path", ""))) or (has_ja_chars and is_ja_voice):
         xtts = get_xtts()
         speaker_ref = custom_voice["ref_path"]
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
             tmp_out = tmp.name
         try:
+            ja_sample = clean_text or "こんにちは！Adragon Studioの音声です。"
+            # If text is too long for preview, shorten to first sentence
+            if len(ja_sample) > 40:
+                ja_sample = ja_sample.split("。")[0] + "。"
             xtts.tts_to_file(
-                text=text,
+                text=ja_sample,
                 speaker_wav=speaker_ref,
                 language="ja",
                 file_path=tmp_out
             )
             audio, sr = sf.read(tmp_out)
-            if sr != SAMPLE_RATE:
-                audio = librosa.resample(audio, orig_sr=sr, target_sr=SAMPLE_RATE)
-
-            def ja_generator():
-                h = io.BytesIO()
-                with wave.open(h, "wb") as w:
-                    w.setnchannels(1)
-                    w.setsampwidth(2)
-                    w.setframerate(SAMPLE_RATE)
-                    w.setnframes(len(audio))
-                yield h.getvalue()
-                yield _pcm16(audio)
-
-            return StreamingResponse(ja_generator(), media_type="audio/wav")
+            sf.write(str(cache_file), audio, sr, format="WAV")
+            return FileResponse(cache_file, media_type="audio/wav")
+        except Exception as e:
+            print(f"⚠️ XTTS preview error: {e}")
+            if os.path.exists(speaker_ref):
+                return FileResponse(speaker_ref, media_type="audio/wav")
+            raise HTTPException(status_code=500, detail=f"Lỗi tạo âm thanh nghe thử: {e}")
         finally:
             if os.path.exists(tmp_out):
                 try:
                     os.remove(tmp_out)
                 except Exception:
                     pass
-
-    tts = get_tts()
-
-    def generator():
-        h = io.BytesIO()
-        with wave.open(h, "wb") as w:
-            w.setnchannels(1)
-            w.setsampwidth(2)
-            w.setframerate(SAMPLE_RATE)
-            w.setnframes(1_000_000_000)
-        yield h.getvalue()
-
-        for chunk in tts.infer_stream(text, voice=voice_id or None):
-            if chunk is not None and len(chunk) > 0:
-                yield _pcm16(chunk)
-
-    return StreamingResponse(generator(), media_type="audio/wav")
+    else:
+        # Vietnamese Engine: fast synthesis and caching
+        tts = get_tts()
+        try:
+            preview_txt = clean_text or "Xin chào, tôi là giọng đọc của Adragon Studio."
+            # Shorten if long to keep preview responsive
+            if len(preview_txt) > 70:
+                for delim in [".", "!", "?", "\n"]:
+                    if delim in preview_txt:
+                        parts = [p.strip() for p in preview_txt.split(delim) if p.strip()]
+                        if parts and len(parts[0]) >= 10:
+                            preview_txt = parts[0] + "."
+                            break
+            audio = tts.infer(text=preview_txt, voice=voice_id or None)
+            sf.write(str(cache_file), audio, SAMPLE_RATE, format="WAV")
+            return FileResponse(cache_file, media_type="audio/wav")
+        except Exception as e:
+            print(f"⚠️ VieNeu preview error: {e}")
+            raise HTTPException(status_code=500, detail=f"Lỗi tạo âm thanh nghe thử: {e}")
 
 
 # --- 3. SERVICE: FULL TEXT TO SPEECH (TTS) ---

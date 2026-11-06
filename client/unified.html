@@ -532,6 +532,7 @@ textarea { resize: vertical; min-height: 90px; }
 }
 .btn-card-play:hover { background: var(--accent); color: #fff; }
 .voice-card.is-playing .btn-card-play { background: var(--danger); color: #fff; border-color: var(--danger); }
+.voice-card.is-loading .btn-card-play { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4); }
 
 /* Wave animation */
 .wave-bars {
@@ -816,14 +817,14 @@ textarea { resize: vertical; min-height: 90px; }
         <span>Văn bản nghe thử</span>
         <span id="char-cnt" style="font-weight: 500; color: var(--muted);">0 ký tự</span>
       </div>
-      <textarea id="sample-text" placeholder="Nhập câu tiếng Việt muốn nghe thử...">Xin chào, tôi là giọng đọc tiếng Việt của hệ thống Adragon Studio. Bạn hãy bấm nghe thử ở từng box để cảm nhận giọng của tôi nhé!</textarea>
+      <textarea id="sample-text" placeholder="Nhập câu tiếng Việt hoặc tiếng Nhật muốn nghe thử...">Xin chào, tôi là giọng đọc của hệ thống Adragon Studio.</textarea>
 
       <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
         <span style="font-size: 12px; color: var(--subtle); font-weight: 600; line-height: 28px;">Mẫu nhanh:</span>
-        <button class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="setSample('Chào các bạn, đây là bản thử nghiệm giọng nói tự nhiên chạy trên máy tính cá nhân.')">Chào hỏi</button>
+        <button class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="setSample('Xin chào, tôi là giọng đọc của hệ thống Adragon Studio.')">Chào hỏi</button>
+        <button class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="setSample('こんにちは！Adragon Studioの音声です。')">🇯🇵 Tiếng Nhật</button>
         <button class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="setSample('Bản tin hôm nay: thời tiết Hà Nội và các tỉnh phía Bắc se lạnh với nhiệt độ 19 độ C.')">Bản tin</button>
         <button class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="setSample('Ngày xửa ngày xưa, ở một ngôi làng nhỏ bên bờ sông, có một chàng tiều phu hiền lành.')">Kể chuyện</button>
-        <button class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="setSample('Adragon Studio hỗ trợ bilingual code-switching mượt mà giữa tiếng Việt và English.')">Song ngữ</button>
       </div>
     </div>
 
@@ -1589,6 +1590,8 @@ if (ttsInput && ttsCnt) {
   updateTTSCnt();
 }
 
+let currentPreviewAudio = null;
+
 function toggleVoice(vid) {
   if (activeVoiceId === vid) stopAllAudio();
   else playVoiceStream(vid);
@@ -1596,95 +1599,103 @@ function toggleVoice(vid) {
 
 function stopAllAudio() {
   streamJobId++;
-  if (currentController) { currentController.abort(); currentController = null; }
-  activeSourceNodes.forEach(n => { try { n.stop(); n.disconnect(); } catch(e){} });
-  activeSourceNodes = [];
+  if (currentPreviewAudio) {
+    try {
+      currentPreviewAudio.pause();
+      currentPreviewAudio.currentTime = 0;
+    } catch(e){}
+    currentPreviewAudio = null;
+  }
+  if (currentController) {
+    try { currentController.abort(); } catch(e){}
+    currentController = null;
+  }
   if (activeVoiceId) {
     updateCardUI(activeVoiceId, false);
     activeVoiceId = null;
   }
 }
 
-function updateCardUI(vid, isPlaying) {
+function updateCardUI(vid, isPlaying, isLoading = false) {
   const card = document.getElementById(`card-${escapeId(vid)}`);
   const icon = document.getElementById(`icon-${escapeId(vid)}`);
   const txt = document.getElementById(`txt-${escapeId(vid)}`);
   if (!card) return;
-  if (isPlaying) {
+  if (isLoading) {
+    card.classList.remove('is-playing');
+    card.classList.add('is-loading');
+    if (txt) txt.textContent = 'Đang tải...';
+    if (icon) icon.setAttribute('data-lucide', 'loader-2');
+  } else if (isPlaying) {
+    card.classList.remove('is-loading');
     card.classList.add('is-playing');
     if (txt) txt.textContent = 'Dừng';
+    if (icon) icon.setAttribute('data-lucide', 'square');
   } else {
-    card.classList.remove('is-playing');
+    card.classList.remove('is-playing', 'is-loading');
     if (txt) txt.textContent = 'Nghe thử';
+    if (icon) icon.setAttribute('data-lucide', 'play');
   }
+  refreshIcons();
 }
 
 async function playVoiceStream(vid) {
+  if (activeVoiceId === vid) {
+    stopAllAudio();
+    return;
+  }
   stopAllAudio();
+
   const v = (allVoices || []).find(x => x.id === vid);
   let t = sampleTxt.value.trim();
   if (v && v.language === 'ja' && (!t || !/[\u3040-\u30ff\u4e00-\u9faf]/.test(t))) {
-    t = "こんにちは！Adragon Studioの音声クローンです。よろしくお願いいたします。";
+    t = "こんにちは！Adragon Studioの音声です。";
   }
   if (!t) return showToast("Vui lòng nhập văn bản", "Hãy gõ câu bạn muốn nghe thử!", "warn");
 
   activeVoiceId = vid;
-  updateCardUI(vid, true);
+  updateCardUI(vid, false, true); // Show 'Đang tải...'
   const currentJob = ++streamJobId;
   currentController = new AbortController();
-
-  const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  if (!audioCtx || audioCtx.state === 'closed') audioCtx = new AudioCtx();
-  if (audioCtx.state === 'suspended') await audioCtx.resume();
-
-  let playHead = audioCtx.currentTime + 0.08;
-  const SAMPLE_RATE = 48000;
-  let headerConsumed = false;
-  let leftover = new Uint8Array(0);
+  const thisVoiceId = vid;
 
   try {
     const res = await fetch(`/api/stream?text=${encodeURIComponent(t)}&voice_id=${encodeURIComponent(vid)}`, {
       signal: currentController.signal
     });
-    const reader = res.body.getReader();
+    if (!res.ok) throw new Error("Không thể tải âm thanh nghe thử");
+    const blob = await res.blob();
+    if (currentJob !== streamJobId || activeVoiceId !== thisVoiceId) return;
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done || currentJob !== streamJobId) break;
+    const audioUrl = URL.createObjectURL(blob);
+    currentPreviewAudio = new Audio(audioUrl);
 
-      let combined = value;
-      if (leftover.length) {
-        combined = new Uint8Array(leftover.length + value.length);
-        combined.set(leftover, 0);
-        combined.set(value, leftover.length);
-        leftover = new Uint8Array(0);
+    currentPreviewAudio.onplay = () => {
+      if (currentJob === streamJobId && activeVoiceId === thisVoiceId) {
+        updateCardUI(thisVoiceId, true);
       }
-      if (!headerConsumed) {
-        if (combined.length < 44) { leftover = combined; continue; }
-        combined = combined.slice(44);
-        headerConsumed = true;
+    };
+    currentPreviewAudio.onended = () => {
+      if (currentJob === streamJobId && activeVoiceId === thisVoiceId) {
+        stopAllAudio();
       }
-      const usable = combined.length - (combined.length % 2);
-      if (usable < combined.length) leftover = combined.slice(usable);
-
-      if (usable > 0 && currentJob === streamJobId) {
-        const view = new DataView(combined.buffer, combined.byteOffset, usable);
-        const n = Math.floor(usable / 2);
-        const float32 = audioCtx.createBuffer(1, n, SAMPLE_RATE);
-        const ch = float32.getChannelData(0);
-        for (let i = 0; i < n; i++) ch[i] = Math.max(-1, Math.min(1, view.getInt16(i*2, true) / 32768));
-
-        const src = audioCtx.createBufferSource();
-        src.buffer = float32;
-        src.connect(audioCtx.destination);
-        const startAt = Math.max(playHead, audioCtx.currentTime + 0.04);
-        src.start(startAt);
-        playHead = startAt + float32.duration;
-        activeSourceNodes.push(src);
+    };
+    currentPreviewAudio.onerror = (err) => {
+      console.error("Audio error:", err);
+      if (currentJob === streamJobId && activeVoiceId === thisVoiceId) {
+        stopAllAudio();
       }
-    }
+    };
+
+    await currentPreviewAudio.play();
   } catch(e) {
-    if (e.name !== 'AbortError') console.error(e);
+    if (e.name !== 'AbortError') {
+      console.error("Preview error:", e);
+      showToast("Lỗi nghe thử", "Không thể phát âm thanh nghe thử lúc này.", "error");
+    }
+    if (currentJob === streamJobId && activeVoiceId === thisVoiceId) {
+      stopAllAudio();
+    }
   }
 }
 
