@@ -232,6 +232,14 @@ body {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 0.8s linear infinite !important;
+  display: inline-block;
+}
 
 .view-header {
   margin-bottom: 22px;
@@ -778,9 +786,9 @@ textarea { resize: vertical; min-height: 90px; }
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <span style="font-weight: 700; font-size: 15px;">Tất cả âm thanh đã tạo (<span id="history-total">0</span>)</span>
-        <button class="btn-secondary" onclick="loadHistory()">
-          <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
-          <span>Làm mới danh sách</span>
+        <button class="btn-secondary" id="btn-refresh-history" onclick="loadHistory(true)">
+          <i data-lucide="refresh-cw" id="icon-refresh-history" style="width: 14px; height: 14px;"></i>
+          <span id="txt-refresh-history">Làm mới danh sách</span>
         </button>
       </div>
 
@@ -1345,15 +1353,121 @@ function startTimer(timerId, fillId, statusId, statusText) {
   };
 }
 
+let isHistoryLoading = false;
+let currentHistoryAudio = null;
+let currentPlayingHistoryId = null;
+
+function stopHistoryAudio() {
+  if (currentHistoryAudio) {
+    try {
+      currentHistoryAudio.pause();
+      currentHistoryAudio.currentTime = 0;
+    } catch(e){}
+    currentHistoryAudio = null;
+  }
+  if (currentPlayingHistoryId) {
+    updateHistoryBtnUI(currentPlayingHistoryId, false);
+    currentPlayingHistoryId = null;
+  }
+}
+
+function updateHistoryBtnUI(id, isPlaying) {
+  const btn = document.getElementById(`btn-play-history-${escapeId(id)}`);
+  const txt = document.getElementById(`txt-play-history-${escapeId(id)}`);
+  if (!btn) return;
+  if (isPlaying) {
+    btn.style.background = 'var(--danger)';
+    btn.style.color = '#fff';
+    btn.style.borderColor = 'var(--danger)';
+    if (txt) txt.textContent = 'Dừng';
+    const icon = btn.querySelector('i');
+    if (icon) icon.setAttribute('data-lucide', 'square');
+  } else {
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+    if (txt) txt.textContent = 'Nghe';
+    const icon = btn.querySelector('i');
+    if (icon) icon.setAttribute('data-lucide', 'play');
+  }
+  refreshIcons();
+}
+
+function toggleHistoryAudio(id, filename) {
+  if (currentPlayingHistoryId === id) {
+    stopHistoryAudio();
+    return;
+  }
+
+  // Chống chồng tiếng: Dừng mọi audio khác
+  stopHistoryAudio();
+  stopAllAudio(); // Dừng cả Voice Explorer nếu đang phát
+
+  currentPlayingHistoryId = id;
+  updateHistoryBtnUI(id, true);
+
+  const audio = new Audio(`/api/history/audio/${filename}`);
+  currentHistoryAudio = audio;
+
+  audio.onended = () => {
+    if (currentPlayingHistoryId === id) {
+      stopHistoryAudio();
+    }
+  };
+
+  audio.onerror = (e) => {
+    console.error("Lỗi phát history audio:", e);
+    showToast("Lỗi phát audio", `Không thể phát file: ${filename}`, "danger");
+    if (currentPlayingHistoryId === id) {
+      stopHistoryAudio();
+    }
+  };
+
+  audio.play().catch(err => {
+    console.error("Play failed:", err);
+    if (currentPlayingHistoryId === id) {
+      stopHistoryAudio();
+    }
+  });
+
+  showToast("Đang phát audio", `File: ${filename}`, "info", 2000);
+}
+
 // Load History
-async function loadHistory() {
+async function loadHistory(isManual = false) {
+  if (isHistoryLoading) return;
+  isHistoryLoading = true;
+
+  const btn = document.getElementById('btn-refresh-history');
+  const icon = document.getElementById('icon-refresh-history');
+  const txt = document.getElementById('txt-refresh-history');
+  const tbody = document.getElementById('history-tbody');
+
+  if (icon) icon.classList.add('spin');
+  if (txt) txt.textContent = 'Đang làm mới...';
+  if (btn) btn.disabled = true;
+
+  // Nếu bảng đang trống hoặc vừa vào trang, hiển thị loading rõ ràng
+  if (tbody && (!tbody.children.length || tbody.innerHTML.includes('Chưa có audio'))) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align: center; color: var(--accent-light); padding: 36px;">
+          <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <i data-lucide="loader-2" class="spin" style="width: 20px; height: 20px;"></i>
+            <span style="font-size: 14px; font-weight: 600;">Đang tải danh sách âm thanh đã tạo...</span>
+          </div>
+        </td>
+      </tr>
+    `;
+    refreshIcons();
+  }
+
   try {
     const res = await fetch('/api/history');
     const items = await res.json();
     document.getElementById('history-total').textContent = items.length;
     document.getElementById('history-badge').textContent = items.length;
 
-    const tbody = document.getElementById('history-tbody');
     tbody.innerHTML = '';
 
     if (items.length === 0) {
@@ -1364,6 +1478,7 @@ async function loadHistory() {
     items.forEach(it => {
       const tr = document.createElement('tr');
       tr.id = `row-${it.id}`;
+      const isPlaying = (currentPlayingHistoryId === it.id);
       tr.innerHTML = `
         <td>
           <div style="font-weight: 700; color: #fff;">${it.title || it.filename}</div>
@@ -1389,9 +1504,9 @@ async function loadHistory() {
         </td>
         <td>
           <div style="display: flex; gap: 6px;">
-            <button class="btn-secondary" style="padding: 5px 9px; font-size: 12px;" onclick="playHistoryAudio('${it.filename}')">
-              <i data-lucide="play" style="width: 12px; height: 12px;"></i>
-              <span>Nghe</span>
+            <button class="btn-secondary" id="btn-play-history-${escapeId(it.id)}" style="padding: 5px 9px; font-size: 12px; ${isPlaying ? 'background: var(--danger); color: #fff; border-color: var(--danger);' : ''}" onclick="toggleHistoryAudio('${it.id}', '${escapeJs(it.filename)}')">
+              <i data-lucide="${isPlaying ? 'square' : 'play'}" style="width: 12px; height: 12px;"></i>
+              <span id="txt-play-history-${escapeId(it.id)}">${isPlaying ? 'Dừng' : 'Nghe'}</span>
             </button>
             <a href="/api/history/audio/${it.filename}" download="${it.filename}" class="btn-secondary" style="padding: 5px 9px; font-size: 12px; text-decoration: none;">
               <i data-lucide="download" style="width: 12px; height: 12px;"></i>
@@ -1406,15 +1521,19 @@ async function loadHistory() {
       tbody.appendChild(tr);
     });
     refreshIcons();
+    if (isManual) {
+      showToast("Đã làm mới danh sách", "Danh sách âm thanh đã được cập nhật mới nhất", "success", 2000);
+    }
   } catch (e) {
     console.error("Lỗi tải lịch sử:", e);
+    showToast("Lỗi làm mới", "Không thể tải danh sách âm thanh lúc này", "danger");
+  } finally {
+    isHistoryLoading = false;
+    if (icon) icon.classList.remove('spin');
+    if (txt) txt.textContent = 'Làm mới danh sách';
+    if (btn) btn.disabled = false;
+    refreshIcons();
   }
-}
-
-function playHistoryAudio(fn) {
-  const p = new Audio(`/api/history/audio/${fn}`);
-  p.play();
-  showToast("Đang phát audio", `File: ${fn}`, "info", 2500);
 }
 
 // XÓA MƯỢT MÀ VỚI TOAST GÓC PHẢI TRÊN
@@ -1598,6 +1717,7 @@ function toggleVoice(vid) {
 }
 
 function stopAllAudio() {
+  if (typeof stopHistoryAudio === 'function') stopHistoryAudio();
   streamJobId++;
   if (currentPreviewAudio) {
     try {
