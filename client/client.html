@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VieNeu-TTS Studio — Trình Nghe Thử & Quản Lý Giọng Đọc</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎙️</text></svg>">
+<style>
+:root {
+  --bg: #0b1120;
+  --surface: #131d35;
+  --surface-hover: #1a2747;
+  --surface-active: #203158;
+  --card: #141f38;
+  --card-border: #23345a;
+  --card-active-border: #10b981;
+  --ink: #f1f5f9;
+  --muted: #94a3b8;
+  --subtle: #64748b;
+  --accent: #10b981;
+  --accent-light: #34d399;
+  --accent-glow: rgba(16, 185, 129, 0.25);
+  --accent2: #0ea5e9;
+  --accent2-glow: rgba(14, 165, 233, 0.25);
+  --danger: #ef4444;
+  --warn: #f59e0b;
+  --radius: 14px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 700px at 15% -5%, rgba(16, 185, 129, 0.12), transparent 60%),
+    radial-gradient(1000px 600px at 85% 15%, rgba(14, 165, 233, 0.12), transparent 55%),
+    var(--bg);
+  color: var(--ink);
+  font: 14.5px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding: 28px 20px 60px;
+}
+
+.container {
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--card-border);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.brand-icon {
+  font-size: 34px;
+  background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(14,165,233,0.2));
+  border: 1px solid rgba(16,185,129,0.3);
+  padding: 8px 12px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #ffffff, #cbd5e1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.sub {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 3px;
+}
+.badge-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.badge {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--accent-light);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.badge.b2 {
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--accent2);
+  border-color: rgba(14, 165, 233, 0.3);
+}
+
+/* Main Control Box */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+.panel-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+.text-input-wrap {
+  position: relative;
+}
+textarea {
+  width: 100%;
+  background: #0d1527;
+  color: var(--ink);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font: inherit;
+  font-size: 15px;
+  resize: vertical;
+  min-height: 80px;
+  max-height: 240px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.sample-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+.preset-label {
+  font-size: 12px;
+  color: var(--subtle);
+  font-weight: 600;
+}
+.preset-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--muted);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.preset-chip:hover {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-light);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+/* Filters & Search Bar */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tab-btn {
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  color: var(--muted);
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tab-btn:hover {
+  background: var(--surface-hover);
+  color: var(--ink);
+}
+.tab-btn.active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(14, 165, 233, 0.2));
+  color: #fff;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.search-input {
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  color: var(--ink);
+  padding: 7px 14px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13.5px;
+  outline: none;
+  min-width: 200px;
+}
+.search-input:focus {
+  border-color: var(--accent);
+}
+.btn-stop-all {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  padding: 7px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+.btn-stop-all:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fff;
+}
+
+/* Voice Grid */
+.voice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* Voice Card */
+.voice-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.voice-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.voice-card.is-playing {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, #162444, #121c35);
+  box-shadow: 0 0 0 2px var(--accent-glow), 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.voice-card.is-loading {
+  border-color: var(--warn);
+}
+
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  background: #1e2c4c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.avatar.female {
+  background: linear-gradient(135deg, rgba(244, 114, 182, 0.2), rgba(236, 72, 153, 0.1));
+  border-color: rgba(244, 114, 182, 0.3);
+}
+.avatar.male {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(14, 165, 233, 0.1));
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.voice-info {
+  flex-grow: 1;
+  min-width: 0;
+}
+.voice-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.voice-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.star-badge {
+  color: #fbbf24;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.voice-desc {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* Card Tags */
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.tag {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+}
+.tag.bac { color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
+.tag.trung { color: #fbbf24; background: rgba(251, 191, 36, 0.1); }
+.tag.nam { color: #34d399; background: rgba(52, 211, 153, 0.1); }
+
+/* Play/Pause Button in Box */
+.card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.btn-play {
+  flex-grow: 1;
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font: 600 13.5px system-ui;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-light);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  transition: all 0.15s ease;
+}
+.btn-play:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+.voice-card.is-playing .btn-play {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+}
+.voice-card.is-playing .btn-play:hover {
+  background: #dc2626;
+}
+
+.playback-status {
+  font-size: 11.5px;
+  color: var(--subtle);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 60px;
+  justify-content: flex-end;
+}
+.voice-card.is-playing .playback-status {
+  color: var(--accent-light);
+  font-weight: 600;
+}
+
+/* Sound Wave Animation */
+.wave-bars {
+  display: none;
+  align-items: center;
+  gap: 2.5px;
+  height: 14px;
+}
+.voice-card.is-playing .wave-bars {
+  display: flex;
+}
+.bar {
+  width: 2.5px;
+  height: 100%;
+  background: var(--accent-light);
+  border-radius: 2px;
+  animation: bounce 0.8s ease-in-out infinite alternate;
+}
+.bar:nth-child(2) { animation-delay: 0.15s; }
+.bar:nth-child(3) { animation-delay: 0.3s; }
+.bar:nth-child(4) { animation-delay: 0.45s; }
+@keyframes bounce {
+  0% { height: 20%; }
+  100% { height: 100%; }
+}
+
+/* Spinner */
+.spinner-small {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: none;
+}
+.voice-card.is-loading .spinner-small {
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Toast / Floating indicator */
+.toast-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(19, 29, 53, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--accent);
+  padding: 10px 20px;
+  border-radius: 999px;
+  display: none;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  font-size: 13.5px;
+  z-index: 100;
+}
+.toast-bar.visible {
+  display: flex;
+}
+.toast-btn-stop {
+  background: var(--danger);
+  border: 0;
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font: 600 12px inherit;
+  cursor: pointer;
+}
+
+@media (max-width: 680px) {
+  body { padding: 16px 12px; }
+  .voice-grid { grid-template-columns: 1fr; }
+  .header { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">🎙️</div>
+      <div>
+        <h1>VieNeu-TTS Studio (v3 Turbo)</h1>
+        <div class="sub">Danh sách giọng đọc tiếng Việt đa vùng miền · Stream thời gian thực 48 kHz</div>
+      </div>
+    </div>
+    <div class="badge-group">
+      <span class="badge">⚡ INT8 ONNX CPU</span>
+      <span class="badge b2">🔊 48 kHz Mono</span>
+      <span class="badge">🇻🇳 Bắc · Trung · Nam</span>
+    </div>
+  </header>
+
+  <!-- Input Panel -->
+  <div class="panel">
+    <div class="panel-title">
+      <span>📝 Nội dung văn bản đọc mẫu</span>
+      <span id="char-count" style="font-weight: 500;">0 ký tự</span>
+    </div>
+    <div class="text-input-wrap">
+      <textarea id="sample-text" placeholder="Nhập câu tiếng Việt cần nghe thử tại đây...">Xin chào, tôi là giọng đọc tiếng Việt của hệ thống VieNeu-TTS. Bạn hãy bấm vào nút nghe thử ở từng box để nghe giọng của tôi nhé!</textarea>
+    </div>
+    <div class="sample-presets">
+      <span class="preset-label">Mẫu câu nhanh:</span>
+      <button class="preset-chip" onclick="setPresetText('Xin chào các bạn, đây là bản thử nghiệm giọng đọc tự nhiên trên máy tính cá nhân.')">Chào hỏi tự nhiên</button>
+      <button class="preset-chip" onclick="setPresetText('Hôm nay thời tiết tại thủ đô Hà Nội se lạnh, nhiệt độ dao động từ 18 đến 24 độ C.')">Bản tin thời tiết</button>
+      <button class="preset-chip" onclick="setPresetText('Ngày xửa ngày xưa, ở một ngôi làng nhỏ ven sông, có một cậu bé rất yêu thích âm nhạc.')">Kể chuyện cổ tích</button>
+      <button class="preset-chip" onclick="setPresetText('VieNeu-TTS hỗ trợ bilingual code-switching mượt mà giữa tiếng Việt và English language.')">Song ngữ Việt - Anh</button>
+      <button class="preset-chip" onclick="setPresetText('Ôi bất ngờ quá [cười], tôi không nghĩ giọng đọc lại chân thật và truyền cảm đến vậy!')">Cảm xúc [cười]</button>
+    </div>
+  </div>
+
+  <!-- Filter & Action Bar -->
+  <div class="filter-bar">
+    <div class="filter-tabs" id="region-filter">
+      <button class="tab-btn active" data-filter="all" onclick="applyFilter('all')">Tất cả (<span id="total-count">0</span>)</button>
+      <button class="tab-btn" data-filter="featured" onclick="applyFilter('featured')">⭐ Nổi bật</button>
+      <button class="tab-btn" data-filter="Bắc" onclick="applyFilter('Bắc')">Miền Bắc</button>
+      <button class="tab-btn" data-filter="Trung" onclick="applyFilter('Trung')">Miền Trung</button>
+      <button class="tab-btn" data-filter="Nam" onclick="applyFilter('Nam')">Miền Nam</button>
+      <button class="tab-btn" data-filter="female" onclick="applyFilter('female')">Giọng Nữ</button>
+      <button class="tab-btn" data-filter="male" onclick="applyFilter('male')">Giọng Nam</button>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <input type="text" id="search-box" class="search-input" placeholder="🔍 Tìm tên giọng..." oninput="filterCards()">
+      <button class="btn-stop-all" id="btn-stop-global" onclick="stopAllAudio()" style="display: none;">
+        ⏹ Dừng phát
+      </button>
+    </div>
+  </div>
+
+  <!-- Voices Grid -->
+  <div class="voice-grid" id="voices-grid">
+    <!-- Voice cards will be injected dynamically -->
+  </div>
+</div>
+
+<!-- Floating bottom status bar -->
+<div class="toast-bar" id="toast-bar">
+  <div class="wave-bars" style="display: flex;">
+    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+  </div>
+  <span id="toast-text">Đang phát: <strong>...</strong></span>
+  <span id="toast-ttfa" style="color: var(--accent-light); font-weight: 700; font-size: 12px;"></span>
+  <button class="toast-btn-stop" onclick="stopAllAudio()">Dừng lại</button>
+</div>
+
+<script>
+let allVoices = [];
+let currentFilter = 'all';
+
+// Audio Playback & Streaming Controller
+let activeVoiceId = null;
+let currentController = null;
+let activeSourceNodes = [];
+let audioCtx = null;
+let streamJobId = 0;
+
+const sampleText = document.getElementById('sample-text');
+const charCount = document.getElementById('char-count');
+const voicesGrid = document.getElementById('voices-grid');
+const searchBox = document.getElementById('search-box');
+const toastBar = document.getElementById('toast-bar');
+const toastText = document.getElementById('toast-text');
+const toastTtfa = document.getElementById('toast-ttfa');
+const btnStopGlobal = document.getElementById('btn-stop-global');
+
+function updateCharCount() {
+  charCount.textContent = `${sampleText.value.length} ký tự`;
+}
+sampleText.addEventListener('input', updateCharCount);
+updateCharCount();
+
+function setPresetText(text) {
+  sampleText.value = text;
+  updateCharCount();
+  // If a voice is currently playing, replay with new text
+  if (activeVoiceId) {
+    playVoice(activeVoiceId);
+  }
+}
+
+// Fetch Voices on Load
+fetch('/voices')
+  .then(res => res.json())
+  .then(data => {
+    allVoices = data.map(item => parseVoice(item));
+    document.getElementById('total-count').textContent = allVoices.length;
+    renderGrid(allVoices);
+  })
+  .catch(err => {
+    voicesGrid.innerHTML = `<div style="color: var(--danger); padding: 20px;">Lỗi tải danh sách giọng: ${err}</div>`;
+  });
+
+function parseVoice(raw) {
+  // Format: "⭐ Name — Description" OR "Name — Description"
+  let id = raw.id;
+  let fullName = raw.name || raw.id;
+  let isFeatured = fullName.includes('⭐');
+  
+  let cleanName = fullName.replace('⭐', '').trim();
+  let parts = cleanName.split('—');
+  let displayName = parts[0].trim();
+  let desc = parts[1] ? parts[1].trim() : '';
+
+  // Parse tags
+  let gender = 'other';
+  if (desc.includes('Nam') && !desc.includes('Việt Nam')) gender = 'male';
+  if (desc.includes('Nữ')) gender = 'female';
+
+  let region = '';
+  if (desc.includes('Bắc')) region = 'Bắc';
+  else if (desc.includes('Trung')) region = 'Trung';
+  else if (desc.includes('Nam')) region = 'Nam';
+
+  let style = '';
+  if (desc.includes('kể chuyện')) style = 'Kể chuyện';
+  else if (desc.includes('tin tức')) style = 'Tin tức';
+  else if (desc.includes('đọc truyện')) style = 'Đọc truyện';
+  else if (desc.includes('tự nhiên')) style = 'Tự nhiên';
+
+  return {
+    id,
+    displayName,
+    desc,
+    isFeatured,
+    gender,
+    region,
+    style
+  };
+}
+
+function renderGrid(voices) {
+  voicesGrid.innerHTML = '';
+  if (voices.length === 0) {
+    voicesGrid.innerHTML = `<div style="color: var(--muted); grid-column: 1/-1; text-align: center; padding: 40px;">Không tìm thấy giọng đọc phù hợp.</div>`;
+    return;
+  }
+
+  voices.forEach(v => {
+    const card = document.createElement('div');
+    card.className = 'voice-card';
+    card.id = `card-${escapeId(v.id)}`;
+
+    const avatarIcon = v.gender === 'female' ? '👩' : (v.gender === 'male' ? '👨' : '🎙️');
+    const avatarClass = v.gender === 'female' ? 'avatar female' : (v.gender === 'male' ? 'avatar male' : 'avatar');
+    const regionTagClass = v.region === 'Bắc' ? 'tag bac' : (v.region === 'Trung' ? 'tag trung' : (v.region === 'Nam' ? 'tag nam' : 'tag'));
+
+    card.innerHTML = `
+      <div>
+        <div class="card-top">
+          <div class="${avatarClass}">${avatarIcon}</div>
+          <div class="voice-info">
+            <div class="voice-name-row">
+              <span class="voice-name" title="${v.displayName}">${v.displayName}</span>
+              ${v.isFeatured ? '<span class="star-badge" title="Giọng nổi bật">⭐</span>' : ''}
+            </div>
+            <div class="voice-desc">${v.desc || 'Giọng đọc chuẩn tiếng Việt'}</div>
+          </div>
+        </div>
+
+        <div class="card-tags">
+          ${v.region ? `<span class="${regionTagClass}">Miền ${v.region}</span>` : ''}
+          ${v.gender === 'female' ? '<span class="tag">Nữ</span>' : (v.gender === 'male' ? '<span class="tag">Nam</span>' : '')}
+          ${v.style ? `<span class="tag">${v.style}</span>` : ''}
+        </div>
+      </div>
+
+      <div class="card-actions">
+        <button class="btn-play" id="btn-${escapeId(v.id)}" onclick="toggleVoice('${escapeJs(v.id)}')">
+          <span class="spinner-small" id="spin-${escapeId(v.id)}"></span>
+          <span class="btn-icon" id="icon-${escapeId(v.id)}">▶</span>
+          <span class="btn-text" id="text-${escapeId(v.id)}">Nghe thử</span>
+        </button>
+
+        <div class="playback-status">
+          <div class="wave-bars" id="wave-${escapeId(v.id)}">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          </div>
+          <span id="ttfa-${escapeId(v.id)}"></span>
+        </div>
+      </div>
+    `;
+
+    voicesGrid.appendChild(card);
+  });
+}
+
+function escapeId(str) {
+  return encodeURIComponent(str).replace(/%/g, '_');
+}
+function escapeJs(str) {
+  return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+// Filter handling
+function applyFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-filter') === filter);
+  });
+  filterCards();
+}
+
+function filterCards() {
+  const q = searchBox.value.trim().toLowerCase();
+  const filtered = allVoices.filter(v => {
+    // Filter tag match
+    let matchFilter = true;
+    if (currentFilter === 'featured') matchFilter = v.isFeatured;
+    else if (currentFilter === 'female') matchFilter = v.gender === 'female';
+    else if (currentFilter === 'male') matchFilter = v.gender === 'male';
+    else if (['Bắc', 'Trung', 'Nam'].includes(currentFilter)) matchFilter = v.region === currentFilter;
+
+    // Search query match
+    let matchQuery = true;
+    if (q) {
+      matchQuery = v.displayName.toLowerCase().includes(q) || v.desc.toLowerCase().includes(q);
+    }
+    return matchFilter && matchQuery;
+  });
+
+  renderGrid(filtered);
+  // Restore playing UI state if active voice is still visible
+  if (activeVoiceId) {
+    updateCardPlayingUI(activeVoiceId, true);
+  }
+}
+
+// Audio Control logic
+function toggleVoice(voiceId) {
+  if (activeVoiceId === voiceId) {
+    // Clicking the same voice -> Pause / Stop it!
+    stopAllAudio();
+  } else {
+    // Clicking a new voice -> Stop previous voice immediately, then play this new voice!
+    playVoice(voiceId);
+  }
+}
+
+function stopAllAudio() {
+  streamJobId++; // Invalidate ongoing chunks
+  if (currentController) {
+    currentController.abort();
+    currentController = null;
+  }
+
+  // Stop all active audio buffers
+  activeSourceNodes.forEach(node => {
+    try {
+      node.stop();
+      node.disconnect();
+    } catch(e) {}
+  });
+  activeSourceNodes = [];
+
+  // Reset UI states for all cards
+  if (activeVoiceId) {
+    updateCardPlayingUI(activeVoiceId, false);
+    activeVoiceId = null;
+  }
+
+  toastBar.classList.remove('visible');
+  btnStopGlobal.style.display = 'none';
+}
+
+function updateCardPlayingUI(voiceId, isPlaying, isLoading = false, ttfaMs = null) {
+  const card = document.getElementById(`card-${escapeId(voiceId)}`);
+  const btn = document.getElementById(`btn-${escapeId(voiceId)}`);
+  const spin = document.getElementById(`spin-${escapeId(voiceId)}`);
+  const icon = document.getElementById(`icon-${escapeId(voiceId)}`);
+  const text = document.getElementById(`text-${escapeId(voiceId)}`);
+  const wave = document.getElementById(`wave-${escapeId(voiceId)}`);
+  const ttfa = document.getElementById(`ttfa-${escapeId(voiceId)}`);
+
+  if (!card) return;
+
+  if (isLoading) {
+    card.classList.add('is-loading');
+    card.classList.remove('is-playing');
+    if (spin) spin.style.display = 'inline-block';
+    if (icon) icon.style.display = 'none';
+    if (text) text.textContent = 'Đang nạp...';
+    if (wave) wave.style.display = 'none';
+    if (ttfa) ttfa.textContent = '';
+  } else if (isPlaying) {
+    card.classList.remove('is-loading');
+    card.classList.add('is-playing');
+    if (spin) spin.style.display = 'none';
+    if (icon) { icon.style.display = 'inline'; icon.textContent = '⏸'; }
+    if (text) text.textContent = 'Dừng';
+    if (wave) wave.style.display = 'flex';
+    if (ttfa && ttfaMs) ttfa.textContent = `⚡ ${ttfaMs}ms`;
+  } else {
+    card.classList.remove('is-loading', 'is-playing');
+    if (spin) spin.style.display = 'none';
+    if (icon) { icon.style.display = 'inline'; icon.textContent = '▶'; }
+    if (text) text.textContent = 'Nghe thử';
+    if (wave) wave.style.display = 'none';
+    if (ttfa) ttfa.textContent = '';
+  }
+}
+
+async function playVoice(voiceId) {
+  // 1. Dừng ngay lập tức giọng cũ nếu đang phát, đảm bảo KHÔNG BAO GIỜ bị chồng tiếng
+  stopAllAudio();
+
+  const textToRead = sampleText.value.trim();
+  if (!textToRead) {
+    alert("Vui lòng nhập nội dung văn bản cần nghe thử!");
+    sampleText.focus();
+    return;
+  }
+
+  activeVoiceId = voiceId;
+  const currentJob = ++streamJobId;
+  currentController = new AbortController();
+
+  // Find voice meta
+  const voiceObj = allVoices.find(v => v.id === voiceId);
+  const voiceTitle = voiceObj ? voiceObj.displayName : voiceId;
+
+  // Update UI to Loading state
+  updateCardPlayingUI(voiceId, false, true);
+  btnStopGlobal.style.display = 'inline-flex';
+  toastBar.classList.add('visible');
+  toastText.innerHTML = `Đang kết nối: <strong>${voiceTitle}</strong>...`;
+  toastTtfa.textContent = '';
+
+  // Setup Web Audio Context
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!audioCtx || audioCtx.state === 'closed') {
+    audioCtx = new AudioContextClass();
+  }
+  if (audioCtx.state === 'suspended') {
+    await audioCtx.resume();
+  }
+
+  let playHead = audioCtx.currentTime + 0.08;
+  const SAMPLE_RATE = 48000;
+  let headerConsumed = false;
+  let leftover = new Uint8Array(0);
+  let firstChunkReceived = false;
+  const t0 = performance.now();
+
+  const url = `/stream?text=${encodeURIComponent(textToRead)}&voice_id=${encodeURIComponent(voiceId)}`;
+
+  try {
+    const resp = await fetch(url, { signal: currentController.signal });
+    if (!resp.ok) {
+      throw new Error(`HTTP ${resp.status}`);
+    }
+
+    const reader = resp.body.getReader();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done || currentJob !== streamJobId) break;
+
+      let combined = value;
+      if (leftover.length) {
+        combined = new Uint8Array(leftover.length + value.length);
+        combined.set(leftover, 0);
+        combined.set(value, leftover.length);
+        leftover = new Uint8Array(0);
+      }
+
+      if (!headerConsumed) {
+        if (combined.length < 44) {
+          leftover = combined;
+          continue;
+        }
+        combined = combined.slice(44); // Bỏ qua WAV header
+        headerConsumed = true;
+      }
+
+      const usable = combined.length - (combined.length % 2);
+      if (usable < combined.length) {
+        leftover = combined.slice(usable);
+      }
+
+      if (usable > 0 && currentJob === streamJobId) {
+        // Switch to Playing state on first audio chunk
+        if (!firstChunkReceived) {
+          firstChunkReceived = true;
+          const ttfa = Math.round(performance.now() - t0);
+          updateCardPlayingUI(voiceId, true, false, ttfa);
+          toastText.innerHTML = `Đang phát: <strong>${voiceTitle}</strong>`;
+          toastTtfa.textContent = `⚡ Phản hồi: ${ttfa}ms`;
+        }
+
+        // Schedule PCM16 chunk
+        schedulePCM(combined.subarray(0, usable), SAMPLE_RATE, currentJob, () => {
+          playHead = Math.max(playHead, audioCtx.currentTime + 0.05);
+          return playHead;
+        }, (newHead) => {
+          playHead = newHead;
+        });
+      }
+    }
+
+    // Finished stream: wait for last audio chunk to finish playing
+    if (currentJob === streamJobId) {
+      const remainingTime = Math.max(0, (playHead - audioCtx.currentTime) * 1000);
+      setTimeout(() => {
+        if (currentJob === streamJobId) {
+          stopAllAudio();
+        }
+      }, remainingTime + 200);
+    }
+
+  } catch (err) {
+    if (err.name !== 'AbortError' && currentJob === streamJobId) {
+      console.error("Lỗi phát audio:", err);
+      alert(`Không thể stream âm thanh cho giọng ${voiceTitle}: ${err.message}`);
+      stopAllAudio();
+    }
+  }
+}
+
+function schedulePCM(uint8arr, sampleRate, jobId, getHead, setHead) {
+  if (!uint8arr || uint8arr.length === 0 || jobId !== streamJobId) return;
+
+  const view = new DataView(uint8arr.buffer, uint8arr.byteOffset, uint8arr.byteLength);
+  const n = Math.floor(uint8arr.byteLength / 2);
+  const float32 = audioCtx.createBuffer(1, n, sampleRate);
+  const ch = float32.getChannelData(0);
+
+  for (let i = 0; i < n; i++) {
+    const val = view.getInt16(i * 2, true);
+    ch[i] = Math.max(-1, Math.min(1, val / 32768));
+  }
+
+  const src = audioCtx.createBufferSource();
+  src.buffer = float32;
+  src.connect(audioCtx.destination);
+
+  const startAt = Math.max(getHead(), audioCtx.currentTime + 0.04);
+  src.start(startAt);
+  setHead(startAt + float32.duration);
+
+  activeSourceNodes.push(src);
+  src.onended = () => {
+    const idx = activeSourceNodes.indexOf(src);
+    if (idx !== -1) activeSourceNodes.splice(idx, 1);
+  };
+}
+
+// Keyboard shortcut: Space to pause/stop currently playing voice
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && activeVoiceId && document.activeElement !== sampleText && document.activeElement !== searchBox) {
+    e.preventDefault();
+    stopAllAudio();
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1980 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adragon Studio — Nền Tảng Giọng Nói AI Đa Dịch Vụ</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+
+<!-- Lucide Icons Library -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+:root {
+  --bg: #090d16;
+  --sidebar: #0f1523;
+  --sidebar-border: #1a2236;
+  --card: #131b2e;
+  --card-border: #1f2b45;
+  --card-hover: #18233c;
+  --ink: #f8fafc;
+  --muted: #94a3b8;
+  --subtle: #64748b;
+  --accent: #10b981;
+  --accent-light: #34d399;
+  --accent-glow: rgba(16, 185, 129, 0.25);
+  --accent2: #0ea5e9;
+  --accent2-glow: rgba(14, 165, 233, 0.25);
+  --danger: #ef4444;
+  --warn: #f59e0b;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14.5px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+}
+
+/* Sidebar Navigation - Style matched with threadviral */
+.sidebar {
+  width: 260px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  padding: 16px 14px 20px;
+  overflow-y: auto;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), padding 0.25s ease;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+
+/* Collapsed Sidebar State (Đóng / Mở mượt mà) */
+.sidebar.collapsed {
+  width: 68px;
+  padding: 16px 8px 20px;
+}
+.sidebar.collapsed .brand-title span,
+.sidebar.collapsed .btn-create-top span,
+.sidebar.collapsed .nav-group-title,
+.sidebar.collapsed .nav-item span:not(.nav-icon),
+.sidebar.collapsed .nav-badge-count {
+  display: none !important;
+}
+.sidebar.collapsed .brand-header {
+  justify-content: center;
+  padding: 4px 0 16px;
+}
+.sidebar.collapsed .brand-title {
+  display: none;
+}
+.sidebar.collapsed .btn-collapse {
+  transform: rotate(180deg);
+}
+.sidebar.collapsed .btn-create-top {
+  padding: 11px 0;
+  justify-content: center;
+}
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 10px 0;
+}
+.sidebar.collapsed .nav-item.active {
+  border-left: none;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.2);
+}
+
+.brand-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 16px;
+}
+.brand-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+  white-space: nowrap;
+}
+.brand-logo-icon {
+  color: var(--accent-light);
+  display: flex;
+  align-items: center;
+}
+.btn-collapse {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.btn-collapse:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
+
+/* Prominent Top Action Button (+ Tạo âm thanh mới) */
+.btn-create-top {
+  width: 100%;
+  background: #f1f5f9;
+  color: #090d16;
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 16px;
+  font: 700 14px system-ui;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.15);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-create-top:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.25);
+}
+
+/* Section Header (THƯ VIỆN, SÁNG TẠO, TÀI KHOẢN, TRỢ GIÚP) */
+.nav-group-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 12px 8px 6px;
+  white-space: nowrap;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  user-select: none;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #f1f5f9;
+}
+.nav-item.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-weight: 600;
+  border-left: 3px solid var(--accent);
+}
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.nav-item.active .nav-icon {
+  color: var(--accent-light);
+}
+.nav-badge-count {
+  margin-left: auto;
+  font-size: 11px;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-light);
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+/* Main Workspace */
+.main-wrapper {
+  flex-grow: 1;
+  min-width: 0;
+  padding: 24px 36px 60px;
+  max-width: 1320px;
+}
+
+/* Views */
+.service-view { display: none; }
+.service-view.active {
+  display: block;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.view-header {
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--card-border);
+}
+.view-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.view-desc {
+  font-size: 13.5px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Panels */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 22px;
+  margin-bottom: 22px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.panel-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Form inputs */
+label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+input[type="text"], select, textarea {
+  width: 100%;
+  background: #0a0f1d;
+  color: var(--ink);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 14.5px;
+  outline: none;
+  transition: all 0.15s;
+}
+input[type="text"]:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+textarea { resize: vertical; min-height: 90px; }
+
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 20px;
+  font: 700 13.5px system-ui;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 16px var(--accent-glow);
+  transition: all 0.15s;
+}
+.btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(1px); }
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 9px 14px;
+  font: 500 13px system-ui;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+.btn-secondary:hover { background: rgba(255, 255, 255, 0.1); }
+
+/* PROGRESS BAR & REALTIME TIMER */
+.progress-card {
+  background: #0a1020;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin: 18px 0;
+  display: none;
+  animation: slideDown 0.2s ease;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.progress-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--accent-light);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.progress-timer {
+  font-size: 14px;
+  font-family: Consolas, monospace;
+  font-weight: 700;
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+.progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 999px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+.progress-fill::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background-image: linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.2) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.2) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 20px 20px;
+  animation: moveStripes 1s linear infinite;
+}
+@keyframes moveStripes {
+  0% { background-position: 0 0; }
+  100% { background-position: 20px 20px; }
+}
+.progress-step-text {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* History List / Table */
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.history-table th {
+  text-align: left;
+  font-size: 12px;
+  color: var(--subtle);
+  text-transform: uppercase;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--card-border);
+}
+.history-table td {
+  padding: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 13.5px;
+  vertical-align: middle;
+}
+.history-table tr {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.history-table tr.removing {
+  opacity: 0;
+  transform: translateX(30px);
+}
+.history-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Grid Boxes for Voice Explorer */
+.voice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.voice-card {
+  background: #0f1930;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+.voice-card:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.voice-card.is-playing {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, #162444, #121c35);
+  box-shadow: 0 0 0 2px var(--accent-glow), 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #1b2642;
+  color: var(--muted);
+}
+.avatar.female {
+  background: linear-gradient(135deg, rgba(244,114,182,0.2), rgba(236,72,153,0.1));
+  color: #f472b6;
+}
+.avatar.male {
+  background: linear-gradient(135deg, rgba(56,189,248,0.2), rgba(14,165,233,0.1));
+  color: #38bdf8;
+}
+.avatar.custom {
+  background: linear-gradient(135deg, rgba(16,185,129,0.25), rgba(14,165,233,0.2));
+  color: var(--accent-light);
+  border: 1px solid rgba(16,185,129,0.4);
+}
+
+.tag {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+}
+.tag.bac { color: #38bdf8; background: rgba(56,189,248,0.1); }
+.tag.trung { color: #fbbf24; background: rgba(251,191,36,0.1); }
+.tag.nam { color: #34d399; background: rgba(52,211,153,0.1); }
+.tag.custom-tag {
+  color: var(--accent-light);
+  background: rgba(16,185,129,0.15);
+  border: 1px solid rgba(16,185,129,0.3);
+  font-weight: 700;
+}
+
+.btn-card-play {
+  flex-grow: 1;
+  border: 0;
+  border-radius: 9px;
+  padding: 8px 12px;
+  font: 600 13px system-ui;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-light);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  transition: all 0.15s;
+}
+.btn-card-play:hover { background: var(--accent); color: #fff; }
+.voice-card.is-playing .btn-card-play { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+/* Wave animation */
+.wave-bars {
+  display: none;
+  align-items: center;
+  gap: 2.5px;
+  height: 14px;
+}
+.voice-card.is-playing .wave-bars { display: flex; }
+.bar {
+  width: 2.5px;
+  height: 100%;
+  background: var(--accent-light);
+  border-radius: 2px;
+  animation: bounce 0.8s ease-in-out infinite alternate;
+}
+.bar:nth-child(2) { animation-delay: 0.15s; }
+.bar:nth-child(3) { animation-delay: 0.3s; }
+.bar:nth-child(4) { animation-delay: 0.45s; }
+@keyframes bounce { 0% { height: 20%; } 100% { height: 100%; } }
+
+/* Upload Area */
+.upload-dropzone {
+  border: 2px dashed var(--card-border);
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.15);
+  transition: all 0.2s;
+}
+.upload-dropzone:hover {
+  border-color: var(--accent);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+/* Audio Player Result Box */
+.result-player {
+  margin-top: 18px;
+  padding: 16px;
+  background: #0b1426;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  display: none;
+}
+
+/* TOP-RIGHT TOAST NOTIFICATION SYSTEM */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  min-width: 320px;
+  max-width: 420px;
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border);
+  border-left: 4px solid var(--accent);
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: all 0.25s ease;
+}
+.toast.toast-danger {
+  border-left-color: var(--danger);
+}
+.toast.toast-danger .toast-icon { color: var(--danger); }
+.toast.toast-success {
+  border-left-color: var(--accent);
+}
+.toast.toast-success .toast-icon { color: var(--accent-light); }
+.toast.toast-info {
+  border-left-color: var(--accent2);
+}
+.toast.toast-info .toast-icon { color: var(--accent2); }
+.toast-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.toast-body { flex-grow: 1; }
+.toast-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: #fff;
+  margin-bottom: 2px;
+}
+.toast-msg {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.toast-close {
+  background: none;
+  border: 0;
+  color: var(--subtle);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+}
+.toast-close:hover { color: #fff; }
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(60px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeOutRight {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(60px); }
+}
+
+@media (max-width: 860px) {
+  body { flex-direction: column; }
+  .sidebar { width: 100% !important; height: auto; position: static; }
+  .main-wrapper { padding: 20px 16px; }
+  .toast-container { right: 12px; left: 12px; top: 12px; }
+  .toast { min-width: auto; width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- Top-Right Toast Notifications Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Left Sidebar Navigation Menu (Adragon Studio) -->
+<aside class="sidebar" id="main-sidebar">
+  <div class="brand-header">
+    <div class="brand-title">
+      <div class="brand-logo-icon"><i data-lucide="zap"></i></div>
+      <span>Adragon Studio</span>
+    </div>
+    <button class="btn-collapse" id="btn-toggle-sidebar" onclick="toggleSidebar()" title="Đóng / Mở menu">
+      <i data-lucide="chevron-left" id="collapse-icon" style="width: 16px; height: 16px;"></i>
+    </button>
+  </div>
+
+  <!-- Primary Top Button -->
+  <button class="btn-create-top" onclick="switchService('tts')">
+    <i data-lucide="plus" style="width: 18px; height: 18px;"></i>
+    <span>Tạo âm thanh mới</span>
+  </button>
+
+  <!-- Group 1: THƯ VIỆN -->
+  <div class="nav-group-title">THƯ VIỆN</div>
+  <div class="nav-item active" onclick="switchService('history')">
+    <div class="nav-icon"><i data-lucide="tv"></i></div>
+    <span>Audio đã tạo</span>
+    <span class="nav-badge-count" id="history-badge">0</span>
+  </div>
+  <div class="nav-item" onclick="switchService('explorer')">
+    <div class="nav-icon"><i data-lucide="sliders"></i></div>
+    <span>Thư viện giọng đọc</span>
+  </div>
+
+  <!-- Group 2: SÁNG TẠO -->
+  <div class="nav-group-title">SÁNG TẠO</div>
+  <div class="nav-item" onclick="switchService('tts')">
+    <div class="nav-icon"><i data-lucide="type"></i></div>
+    <span>Văn bản thành giọng nói</span>
+  </div>
+  <div class="nav-item" onclick="switchService('cloning')">
+    <div class="nav-icon"><i data-lucide="dna"></i></div>
+    <span>Nhân bản giọng nói</span>
+  </div>
+  <div class="nav-item" onclick="switchService('podcast')">
+    <div class="nav-icon"><i data-lucide="users"></i></div>
+    <span>Hội thoại & Podcast</span>
+  </div>
+  <div class="nav-item" onclick="switchService('srt')">
+    <div class="nav-icon"><i data-lucide="clapperboard"></i></div>
+    <span>Lồng tiếng phụ đề</span>
+  </div>
+  <div class="nav-item" onclick="switchService('pdf')">
+    <div class="nav-icon"><i data-lucide="file-text"></i></div>
+    <span>Đọc sách & File PDF</span>
+  </div>
+  <div class="nav-item" onclick="switchService('resources')">
+    <div class="nav-icon"><i data-lucide="folder"></i></div>
+    <span>Kho tài nguyên</span>
+  </div>
+
+  <!-- Group 3: TÀI KHOẢN & CÔNG CỤ -->
+  <div class="nav-group-title">TÀI KHOẢN & CÔNG CỤ</div>
+  <div class="nav-item" onclick="switchService('api')">
+    <div class="nav-icon"><i data-lucide="code"></i></div>
+    <span>Cổng API & Tích hợp</span>
+  </div>
+  <div class="nav-item" onclick="switchService('hardware')">
+    <div class="nav-icon"><i data-lucide="cpu"></i></div>
+    <span>Cấu hình phần cứng</span>
+  </div>
+  <div class="nav-item" onclick="switchService('system_settings')">
+    <div class="nav-icon"><i data-lucide="settings"></i></div>
+    <span>Cài đặt chung</span>
+  </div>
+
+  <!-- Group 4: TRỢ GIÚP -->
+  <div class="nav-group-title">TRỢ GIÚP</div>
+  <div class="nav-item" onclick="switchService('docs')">
+    <div class="nav-icon"><i data-lucide="book-open"></i></div>
+    <span>Hướng dẫn sử dụng</span>
+  </div>
+  <div class="nav-item" onclick="switchService('support')">
+    <div class="nav-icon"><i data-lucide="mail"></i></div>
+    <span>Hộp thư hỗ trợ</span>
+  </div>
+</aside>
+
+<!-- Main Workspace -->
+<main class="main-wrapper">
+
+  <!-- ================= 1. VIEW: AUDIO ĐÃ TẠO (THƯ VIỆN) ================= -->
+  <section class="service-view active" id="view-history">
+    <div class="view-header">
+      <h2 class="view-title"><i data-lucide="tv"></i> <span>Audio Đã Tạo (Lịch Sử Hoạt Động)</span></h2>
+      <div class="view-desc">Danh sách tất cả các file âm thanh đã sinh từ Text to Speech, Voice Cloning, Podcast, SRT Dubbing và Sách PDF.</div>
+    </div>
+
+    <div class="panel">
+      <!-- Storage Policy Alert -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.22); border-radius: 10px; margin-bottom: 18px; font-size: 13px; color: #bfdbfe; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <i data-lucide="clock" style="width: 18px; height: 18px; color: #60a5fa; flex-shrink: 0;"></i>
+          <span><strong>Chính sách lưu trữ:</strong> File âm thanh trong lịch sử sẽ <strong>tự động xóa sau 24 giờ</strong> để giải phóng dung lượng.</span>
+        </div>
+        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; font-weight: 600; font-size: 12px;">
+          <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
+          <span>Kho giọng clone luôn được lưu vĩnh viễn</span>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <span style="font-weight: 700; font-size: 15px;">Tất cả âm thanh đã tạo (<span id="history-total">0</span>)</span>
+        <button class="btn-secondary" onclick="loadHistory()">
+          <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+          <span>Làm mới danh sách</span>
+        </button>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Tiêu đề / File</th>
+              <th>Dịch vụ</th>
+              <th>Giọng đọc</th>
+              <th>Thời lượng</th>
+              <th>Thời gian tạo</th>
+              <th>Thời điểm</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody">
+            <!-- Dynamic rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 2. VIEW: THƯ VIỆN GIỌNG ĐỌC ================= -->
+  <section class="service-view" id="view-explorer">
+    <div class="view-header">
+      <h2 class="view-title"><i data-lucide="sliders"></i> <span>Thư Viện Giọng Đọc (Voice Explorer)</span></h2>
+      <div class="view-desc">Nghe thử các giọng đọc 3 miền Bắc - Trung - Nam và giọng Clone của bạn dạng Box trực quan, chống chồng tiếng.</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        <span>Văn bản nghe thử</span>
+        <span id="char-cnt" style="font-weight: 500; color: var(--muted);">0 ký tự</span>
+      </div>
+      <textarea id="sample-text" placeholder="Nhập câu tiếng Việt muốn nghe thử...">Xin chào, tôi là giọng đọc tiếng Việt của hệ thống Adragon Studio. Bạn hãy bấm nghe thử ở từng box để cảm nhận giọng của tôi nhé!</textarea>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+        <span style="font-size: 12px; color: var(--subtle); font-weight: 600; line-height: 28px;">Mẫu nhanh:</span>
+        <button class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="setSample('Chào các bạn, đây là bản thử nghiệm giọng nói tự nhiên chạy trên máy tính cá nhân.')">Chào hỏi</button>
+        <button class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="setSample('Bản tin hôm nay: thời tiết Hà Nội và các tỉnh phía Bắc se lạnh với nhiệt độ 19 độ C.')">Bản tin</button>
+        <button class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="setSample('Ngày xửa ngày xưa, ở một ngôi làng nhỏ bên bờ sông, có một chàng tiều phu hiền lành.')">Kể chuyện</button>
+        <button class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="setSample('Adragon Studio hỗ trợ bilingual code-switching mượt mà giữa tiếng Việt và English.')">Song ngữ</button>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <button class="btn-secondary" onclick="filterVoices('all')">Tất cả</button>
+        <button class="btn-secondary" onclick="filterVoices('custom')">⭐ Giọng của bạn</button>
+        <button class="btn-secondary" onclick="filterVoices('featured')">Nổi bật</button>
+        <button class="btn-secondary" onclick="filterVoices('Bắc')">Miền Bắc</button>
+        <button class="btn-secondary" onclick="filterVoices('Trung')">Miền Trung</button>
+        <button class="btn-secondary" onclick="filterVoices('Nam')">Miền Nam</button>
+        <button class="btn-secondary" onclick="filterVoices('female')">Giọng Nữ</button>
+        <button class="btn-secondary" onclick="filterVoices('male')">Giọng Nam</button>
+      </div>
+      <input type="text" id="voice-search" placeholder="Tìm tên giọng..." style="width: 220px;" oninput="onSearchVoices()">
+    </div>
+
+    <div class="voice-grid" id="voices-grid">
+      <!-- Voice boxes injected here -->
+    </div>
+  </section>
+
+  <!-- ================= 3. VIEW: VĂN BẢN THÀNH GIỌNG NÓI (TEXT TO SPEECH STUDIO) ================= -->
+  <section class="service-view" id="view-tts">
+    <div class="view-header">
+      <h2 class="view-title"><i data-lucide="type"></i> <span>Văn Bản Thành Giọng Nói (Text-to-Speech Studio)</span></h2>
+      <div class="view-desc">Chuyển đổi bài viết, kịch bản, sách truyện thành file âm thanh chất lượng cao 48 kHz.</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        <span>Nội dung văn bản cần đọc</span>
+        <span id="tts-char-cnt" style="font-weight: 500; color: var(--muted);">0 ký tự | 0 từ</span>
+      </div>
+      <textarea id="tts-input-text" style="min-height: 140px;" placeholder="Nhập hoặc dán văn bản tiếng Việt của bạn vào đây...">Chào mừng bạn đến với Adragon Studio! Đây là giải pháp tổng hợp giọng nói tiếng Việt đỉnh cao với chất lượng âm thanh 48 kHz chuẩn phòng thu. Bạn có thể chọn bất kỳ giọng đọc nào có sẵn, hoặc dùng chính giọng nói vừa được sao chép của bạn để đọc bài viết này.</textarea>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 18px 0;">
+        <div>
+          <label>Chọn giọng đọc:</label>
+          <select id="tts-voice-select"></select>
+        </div>
+        <div>
+          <label>Tốc độ đọc:</label>
+          <select id="tts-speed-select">
+            <option value="0.85">0.85x (Chậm, truyền cảm)</option>
+            <option value="1.0" selected>1.0x (Tốc độ chuẩn)</option>
+            <option value="1.15">1.15x (Hơi nhanh)</option>
+            <option value="1.3">1.3x (Nhanh, tin tức)</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btn-start-tts" onclick="executeTTS()">
+        <i data-lucide="volume-2" style="width: 16px; height: 16px;"></i>
+        <span>Chuyển Thành Giọng Nói Ngay</span>
+      </button>
+
+      <!-- Progress bar with live stopwatch -->
+      <div class="progress-card" id="tts-progress-card">
+        <div class="progress-header">
+          <div class="progress-label" id="tts-progress-status">
+            <i data-lucide="loader-2" class="spin" style="width: 16px; height: 16px;"></i>
+            <span>Đang tổng hợp âm thanh từ văn bản...</span>
+          </div>
+          <div class="progress-timer" id="tts-timer">00:00.0</div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="tts-progress-fill"></div>
+        </div>
+        <div class="progress-step-text">
+          <span>Chuẩn hóa âm vị học &amp; giải mã Neural Codec 48 kHz</span>
+          <span id="tts-speed-est">Ước tính: ~1-3 giây</span>
+        </div>
+      </div>
+
+      <!-- Result Player -->
+      <div class="result-player" id="tts-result-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <div style="font-weight: 700; color: var(--accent-light); display: flex; align-items: center; gap: 6px;">
+            <i data-lucide="check-circle-2" style="width: 18px; height: 18px;"></i>
+            <span>Tạo âm thanh thành công:</span>
+          </div>
+          <div style="font-size: 12px; color: var(--muted);" id="tts-time-result"></div>
+        </div>
+        <audio id="tts-audio-player" controls style="width: 100%;"></audio>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 4. VIEW: NHÂN BẢN GIỌNG NÓI ================= -->
+  <section class="service-view" id="view-cloning">
+    <div class="view-header">
+      <h2 class="view-title"><i data-lucide="dna"></i> <span>Nhân Bản Giọng Nói (Instant Voice Cloning)</span></h2>
+      <div class="view-desc">Sao chép chất giọng bất kỳ chỉ từ 3–8 giây audio mẫu mà không cần train lại model.</div>
+    </div>
+
+    <div class="panel">
+      <label>1. Tải lên file ghi âm mẫu (.wav hoặc .mp3 từ 3 đến 8 giây)</label>
+      <div class="upload-dropzone" onclick="document.getElementById('clone-file-input').click()">
+        <div style="margin-bottom: 8px; color: var(--accent-light);"><i data-lucide="upload-cloud" style="width: 38px; height: 38px;"></i></div>
+        <div style="font-weight: 700; font-size: 15px;" id="clone-file-label">Bấm vào đây để chọn file âm thanh mẫu</div>
+        <div style="font-size: 12.5px; color: var(--muted); margin-top: 4px;">File rõ tiếng, không lẫn nhạc nền hoặc tạp âm lớn</div>
+        <input type="file" id="clone-file-input" accept="audio/*" style="display: none;" onchange="onCloneFileSelected(this)">
+      </div>
+    </div>
+
+    <div class="panel">
+      <label>2. Tên của giọng nói này</label>
+      <input type="text" id="clone-voice-name" placeholder="Ví dụ: Nhật Phong, Giọng của tôi..." style="max-width: 420px; margin-bottom: 8px;" value="Nhật Phong">
+      <div style="font-size: 12.5px; color: #34d399; margin: 0 0 16px; display: flex; align-items: center; gap: 6px;">
+        <i data-lucide="shield-check" style="width: 14px; height: 14px; flex-shrink: 0;"></i>
+        <span>Giọng clone sẽ được lưu vĩnh viễn trong Kho giọng đọc (không bị xóa theo lịch sử 24h).</span>
+      </div>
+
+      <label>3. Văn bản muốn giọng clone đọc thử</label>
+      <textarea id="clone-text" placeholder="Nhập câu tiếng Việt muốn giọng clone phát âm...">Xin chào các bạn, đây chính là giọng nói của tôi vừa được sao chép bằng công nghệ trí tuệ nhân tạo Adragon Studio!</textarea>
+
+      <div style="display: flex; gap: 20px; margin: 16px 0; align-items: center; flex-wrap: wrap;">
+        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; text-transform: none; margin: 0;">
+          <input type="checkbox" id="clone-denoise" checked style="width: auto;">
+          <span>Bật tự động lọc ồn nền (Auto-Denoise)</span>
+        </label>
+      </div>
+
+      <button class="btn-primary" id="btn-start-clone" onclick="executeVoiceClone()">
+        <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
+        <span>Nhân Bản &amp; Lưu Vào Thư Viện Giọng</span>
+      </button>
+
+      <!-- Progress bar with live stopwatch -->
+      <div class="progress-card" id="clone-progress-card">
+        <div class="progress-header">
+          <div class="progress-label" id="clone-progress-status">
+            <i data-lucide="loader-2" class="spin" style="width: 16px; height: 16px;"></i>
+            <span>Đang lọc ồn &amp; trích xuất đặc trưng người nói...</span>
+          </div>
+          <div class="progress-timer" id="clone-timer">00:00.0</div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="clone-progress-fill"></div>
+        </div>
+        <div class="progress-step-text">
+          <span id="clone-step-hint">Chuẩn hóa âm vị học &amp; lưu giọng vào hệ thống</span>
+          <span id="clone-speed-est">Ước tính: ~2-4 giây</span>
+        </div>
+      </div>
+
+      <!-- Result Player -->
+      <div class="result-player" id="clone-result-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <div style="font-weight: 700; color: var(--accent-light); display: flex; align-items: center; gap: 6px;">
+            <i data-lucide="check-circle-2" style="width: 18px; height: 18px;"></i>
+            <span>Kết quả giọng Clone thành công:</span>
+          </div>
+          <div style="font-size: 12px; color: var(--muted);" id="clone-time-result"></div>
+        </div>
+        <audio id="clone-audio-player" controls style="width: 100%;"></audio>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 5. VIEW: HỘI THOẠI & PODCAST ================= -->
+  <section class="service-view" id="view-podcast">
+    <div class="view-header">
+      <h2 class="view-title"><i data-lucide="users"></i> <span>Studio Hội Thoại &amp; Podcast (Multi-Speaker)</span></h2>
+      <div class="view-desc">Soạn kịch bản đối thoại nhiều nhân vật và xuất ra file âm thanh hoàn chỉnh.</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        <span>Kịch bản phân vai</span>
+        <button class="btn-secondary" onclick="addDialogueLine()">
+          <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+          <span>Thêm lời thoại</span>
+        </button>
+      </div>
+
+      <div id="dialogue-container"></div>
+
+      <div style="display: flex; gap: 14px; align-items: center; margin-top: 16px; flex-wrap: wrap;">
+        <label style="margin: 0;">Khoảng nghỉ giữa các câu:</label>
+        <select id="podcast-pause" style="width: 140px;">
+          <option value="200">0.2 giây</option>
+          <option value="400" selected>0.4 giây</option>
+          <option value="600">0.6 giây</option>
+          <option value="800">0.8 giây</option>
+        </select>
+        <button class="btn-primary" id="btn-start-podcast" onclick="generatePodcastAudio()">
+          <i data-lucide="mic" style="width: 16px; height: 16px;"></i>
+          <span>Tạo File Hội Thoại</span>
+        </button>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-card" id="podcast-progress-card">
+        <div class="progress-header">
+          <div class="progress-label" id="podcast-progress-status">
+            <i data-lucide="loader-2" class="spin" style="width: 16px; height: 16px;"></i>
+            <span>Đang tổng hợp từng đoạn hội thoại...</span>
+          </div>
+          <div class="progress-timer" id="podcast-timer">00:00.0</div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="podcast-progress-fill"></div>
+        </div>
+      </div>
+
+      <div class="result-player" id="podcast-result-box">
+        <div style="font-weight: 700; color: var(--accent-light); margin-bottom: 8px;">Audio Hội thoại hoàn chỉnh:</div>
+        <audio id="podcast-audio-player" controls style="width: 100%;"></audio>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 6. VIEW: LỒNG TIẾNG SRT ================= -->
+  <section class="service-view" id="view-srt">
+    <div class="view-header">
+      <h2 class="view-title"><i data-lucide="clapperboard"></i> <span>Lồng Tiếng Phụ Đề SRT</span></h2>
+      <div class="view-desc">Tự động đọc và khớp chính xác theo dòng thời gian (timeline) của file phụ đề .srt.</div>
+    </div>
+
+    <div class="panel">
+      <label>1. Tải lên file phụ đề (.srt)</label>
+      <input type="file" id="srt-file-input" accept=".srt" style="margin-bottom: 16px;">
+
+      <label>2. Chọn giọng đọc lồng tiếng</label>
+      <select id="srt-voice-select" style="max-width: 380px; margin-bottom: 18px;"></select>
+
+      <button class="btn-primary" id="btn-start-srt" onclick="generateSrtDubbing()">
+        <i data-lucide="play" style="width: 16px; height: 16px;"></i>
+        <span>Bắt Đầu Lồng Tiếng SRT</span>
+      </button>
+
+      <!-- Progress bar -->
+      <div class="progress-card" id="srt-progress-card">
+        <div class="progress-header">
+          <div class="progress-label" id="srt-progress-status">
+            <i data-lucide="loader-2" class="spin" style="width: 16px; height: 16px;"></i>
+            <span>Đang căn chỉnh phụ đề theo timeline...</span>
+          </div>
+          <div class="progress-timer" id="srt-timer">00:00.0</div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="srt-progress-fill"></div>
+        </div>
+      </div>
+
+      <div class="result-player" id="srt-result-box">
+        <div style="font-weight: 700; color: var(--accent-light); margin-bottom: 8px;">Audio lồng tiếng chuẩn timeline:</div>
+        <audio id="srt-audio-player" controls style="width: 100%;"></audio>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 7. VIEW: ĐỌC SÁCH / PDF ================= -->
+  <section class="service-view" id="view-pdf">
+    <div class="view-header">
+      <h2 class="view-title"><i data-lucide="file-text"></i> <span>Đọc Sách &amp; File PDF (PDF to Speech)</span></h2>
+      <div class="view-desc">Trích xuất văn bản từ file PDF và chuyển đổi thành giọng đọc sách nói (Audiobook).</div>
+    </div>
+
+    <div class="panel">
+      <label>1. Tải lên file tài liệu / sách (.pdf)</label>
+      <input type="file" id="pdf-file-input" accept=".pdf" onchange="extractPdfText(this)" style="margin-bottom: 16px;">
+
+      <div id="pdf-content-area" style="display: none;">
+        <div class="panel-title">
+          <span>2. Nội dung văn bản trích xuất</span>
+          <span id="pdf-page-count" style="font-weight: 500; color: var(--muted);"></span>
+        </div>
+        <textarea id="pdf-text-extracted" style="min-height: 160px;"></textarea>
+
+        <div style="display: flex; gap: 14px; align-items: center; margin-top: 16px; flex-wrap: wrap;">
+          <label style="margin: 0;">Chọn giọng đọc:</label>
+          <select id="pdf-voice-select" style="max-width: 300px;"></select>
+          <button class="btn-primary" id="btn-start-pdf" onclick="generatePdfAudio()">
+            <i data-lucide="volume-2" style="width: 16px; height: 16px;"></i>
+            <span>Chuyển Thành Giọng Nói</span>
+          </button>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="progress-card" id="pdf-progress-card">
+          <div class="progress-header">
+            <div class="progress-label" id="pdf-progress-status">
+              <i data-lucide="loader-2" class="spin" style="width: 16px; height: 16px;"></i>
+              <span>Đang đọc nội dung PDF...</span>
+            </div>
+            <div class="progress-timer" id="pdf-timer">00:00.0</div>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="pdf-progress-fill"></div>
+          </div>
+        </div>
+
+        <div class="result-player" id="pdf-result-box">
+          <div style="font-weight: 700; color: var(--accent-light); margin-bottom: 8px;">File sách nói hoàn chỉnh:</div>
+          <audio id="pdf-audio-player" controls style="width: 100%;"></audio>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 8. VIEW: KHO TÀI NGUYÊN ================= -->
+  <section class="service-view" id="view-resources">
+    <div class="view-header">
+      <h2 class="view-title"><i data-lucide="folder"></i> <span>Kho Tài Nguyên Âm Thanh</span></h2>
+      <div class="view-desc">Tập hợp các mẫu audio chất lượng cao, file kịch bản mẫu và âm thanh tham chiếu.</div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Tài nguyên Adragon Studio</div>
+      <p style="color: var(--muted); font-size: 14px;">Hệ thống đã nạp sẵn 25+ vector giọng đọc đặc trưng cùng bộ chuyển ngữ âm vị học <code>sea-g2p</code>.</p>
+    </div>
+  </section>
+
+  <!-- ================= 9. VIEW: CỔNG API ================= -->
+  <section class="service-view" id="view-api">
+    <div class="view-header">
+      <h2 class="view-title"><i data-lucide="code"></i> <span>Cổng API &amp; Tích Hợp Hệ Thống</span></h2>
+      <div class="view-desc">Kết nối chuẩn OpenAI Speech API (`POST /v1/audio/speech`) cho các ứng dụng Voice Bot, LiveKit, Pipecat.</div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Endpoint: POST http://localhost:8000/v1/audio/speech</div>
+      <p style="color: var(--muted); font-size: 13.5px;">Tương thích 100% với OpenAI SDK, bạn chỉ cần đặt <code>base_url="http://localhost:8000/v1"</code>.</p>
+      <pre style="background: #090d16; padding: 14px; border-radius: 8px; font-size: 13px; color: #34d399; overflow-x: auto;">
+curl -X POST http://localhost:8000/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{"model": "adragon-v3-turbo", "input": "Xin chào thế giới!", "voice": "Nhật Phong"}' \
+  --output test.wav
+      </pre>
+    </div>
+  </section>
+
+  <!-- ================= 10. VIEW: CẤU HÌNH PHẦN CỨNG & CÀI ĐẶT ================= -->
+  <section class="service-view" id="view-hardware">
+    <div class="view-header">
+      <h2 class="view-title"><i data-lucide="cpu"></i> <span>Cấu Hình Phần Cứng &amp; Hiệu Năng</span></h2>
+      <div class="view-desc">Thông tin thiết bị và các thiết lập tối ưu hóa cho bộ xử lý.</div>
+    </div>
+    <div class="panel">
+      <div style="font-size: 14px; line-height: 2;">
+        <div><strong>Thiết bị thực thi:</strong> <span style="color: var(--accent-light);">CPU (Intel(R) UHD Graphics 730)</span></div>
+        <div><strong>Mô hình nền tảng:</strong> <span style="color: var(--accent2);">Adragon Studio Turbo (ONNX int8)</span></div>
+        <div><strong>Tần số lấy mẫu âm thanh:</strong> 48,000 Hz (Chuẩn Studio High-Fidelity)</div>
+        <div><strong>Trạng thái hệ thống:</strong> <span style="color: var(--accent);">● Sẵn sàng (Active)</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 11. VIEW: CÀI ĐẶT CHUNG ================= -->
+  <section class="service-view" id="view-system_settings">
+    <div class="view-header">
+      <h2 class="view-title"><i data-lucide="settings"></i> <span>Cài Đặt Chung</span></h2>
+      <div class="view-desc">Quản lý giao diện, ngôn ngữ mặc định và các thiết lập lưu trữ của Adragon Studio.</div>
+    </div>
+    <div class="panel">
+      <div style="font-size: 14px; color: var(--muted); line-height: 1.8;">
+        <div><strong>Thư mục lưu trữ file:</strong> <code>outputs/generated</code></div>
+        <div><strong>Thư mục lưu mẫu clone:</strong> <code>outputs/references</code></div>
+        <div><strong>Tự động lưu lịch sử:</strong> Bật (Lưu tối đa 100 tác vụ gần nhất)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 12. VIEW: HƯỚNG DẪN & HỖ TRỢ ================= -->
+  <section class="service-view" id="view-docs">
+    <div class="view-header">
+      <h2 class="view-title"><i data-lucide="book-open"></i> <span>Hướng Dẫn Sử Dụng Nhanh</span></h2>
+      <div class="view-desc">Tài liệu hướng dẫn tối ưu chất lượng âm thanh và khai thác tối đa sức mạnh mô hình.</div>
+    </div>
+    <div class="panel">
+      <p style="color: var(--muted); font-size: 14px; line-height: 1.8;">
+        1. <strong>Voice Cloning:</strong> Nên chọn đoạn audio mẫu từ 3–8 giây, người nói phát âm rõ ràng, không có nhạc nền to.<br>
+        2. <strong>Cảm xúc:</strong> Bạn có thể chèn các thẻ thử nghiệm như <code>[cười]</code>, <code>[thở dài]</code> vào văn bản.<br>
+        3. <strong>Song ngữ:</strong> Thoải mái pha trộn từ tiếng Anh (code-switching) vào câu tiếng Việt.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= 13. VIEW: HỘP THƯ HỖ TRỢ ================= -->
+  <section class="service-view" id="view-support">
+    <div class="view-header">
+      <h2 class="view-title"><i data-lucide="mail"></i> <span>Hộp Thư Hỗ Trợ</span></h2>
+      <div class="view-desc">Kênh trợ giúp và kết nối cộng đồng Adragon Studio.</div>
+    </div>
+    <div class="panel">
+      <p style="color: var(--muted); font-size: 14px; line-height: 1.8;">
+        Hệ thống đang hoạt động ở chế độ Local Trên Thiết Bị (On-Device).<br>
+        Mọi thắc mắc kỹ thuật hoặc đề xuất tính năng mới, vui lòng gửi phản hồi tại đây.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<script>
+let allVoices = [];
+let activeVoiceId = null;
+let currentController = null;
+let activeSourceNodes = [];
+let audioCtx = null;
+let streamJobId = 0;
+
+// Re-render Lucide Icons whenever dynamic content changes
+function refreshIcons() {
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+}
+
+// TOGGLE SIDEBAR (ĐÓNG / MỞ MƯỢT MÀ)
+function toggleSidebar() {
+  const sidebar = document.getElementById('main-sidebar');
+  const isCollapsed = sidebar.classList.toggle('collapsed');
+  const icon = document.getElementById('collapse-icon');
+  if (icon) {
+    icon.setAttribute('data-lucide', isCollapsed ? 'chevron-right' : 'chevron-left');
+  }
+  refreshIcons();
+}
+
+// TOAST NOTIFICATION SYSTEM (Góc phải trên mượt mà)
+function showToast(title, msg, type = 'success', duration = 3500) {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+
+  const iconName = type === 'danger' ? 'trash-2' : (type === 'warn' ? 'alert-circle' : 'check-circle-2');
+
+  toast.innerHTML = `
+    <div class="toast-icon"><i data-lucide="${iconName}"></i></div>
+    <div class="toast-body">
+      <div class="toast-title">${title}</div>
+      <div class="toast-msg">${msg}</div>
+    </div>
+    <button class="toast-close" onclick="dismissToast(this.parentElement)"><i data-lucide="x" style="width: 14px; height: 14px;"></i></button>
+  `;
+
+  container.appendChild(toast);
+  refreshIcons();
+
+  setTimeout(() => {
+    dismissToast(toast);
+  }, duration);
+}
+
+function dismissToast(toast) {
+  if (!toast || toast.dataset.closing) return;
+  toast.dataset.closing = "true";
+  toast.style.animation = 'fadeOutRight 0.25s forwards';
+  setTimeout(() => {
+    if (toast.parentElement) toast.parentElement.removeChild(toast);
+  }, 250);
+}
+
+// Switch Navigation
+function switchService(serviceId) {
+  stopAllAudio();
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.service-view').forEach(el => el.classList.remove('active'));
+
+  const clickedNav = Array.from(document.querySelectorAll('.nav-item')).find(el => {
+    const oc = el.getAttribute('onclick') || '';
+    return oc.includes(`'${serviceId}'`);
+  });
+  if (clickedNav) clickedNav.classList.add('active');
+
+  const targetView = document.getElementById(`view-${serviceId}`);
+  if (targetView) targetView.classList.add('active');
+
+  if (serviceId === 'history') {
+    loadHistory();
+  }
+  refreshIcons();
+}
+
+// Timer Controller for Progress Bars
+function startTimer(timerId, fillId, statusId, statusText) {
+  const timerEl = document.getElementById(timerId);
+  const fillEl = document.getElementById(fillId);
+  const statusEl = document.getElementById(statusId);
+
+  if (statusEl) {
+    statusEl.innerHTML = `<i data-lucide="loader-2" class="spin" style="width: 16px; height: 16px;"></i> <span>${statusText}</span>`;
+    refreshIcons();
+  }
+  if (fillEl) fillEl.style.width = '10%';
+
+  const startTime = performance.now();
+  const interval = setInterval(() => {
+    const elapsed = (performance.now() - startTime) / 1000;
+    const mins = Math.floor(elapsed / 60);
+    const secs = (elapsed % 60).toFixed(1);
+    const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(4, '0')}`;
+    if (timerEl) timerEl.textContent = formatted;
+
+    if (fillEl) {
+      const pct = Math.min(92, 10 + elapsed * 18);
+      fillEl.style.width = `${pct}%`;
+    }
+  }, 100);
+
+  return {
+    stop: (success = true) => {
+      clearInterval(interval);
+      const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
+      if (fillEl) fillEl.style.width = success ? '100%' : '0%';
+      return totalTime;
+    }
+  };
+}
+
+// Load History
+async function loadHistory() {
+  try {
+    const res = await fetch('/api/history');
+    const items = await res.json();
+    document.getElementById('history-total').textContent = items.length;
+    document.getElementById('history-badge').textContent = items.length;
+
+    const tbody = document.getElementById('history-tbody');
+    tbody.innerHTML = '';
+
+    if (items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--muted); padding: 30px;">Chưa có audio nào được tạo. Hãy thử tạo giọng hoặc clone giọng mới!</td></tr>`;
+      return;
+    }
+
+    items.forEach(it => {
+      const tr = document.createElement('tr');
+      tr.id = `row-${it.id}`;
+      tr.innerHTML = `
+        <td>
+          <div style="font-weight: 700; color: #fff;">${it.title || it.filename}</div>
+          <div style="font-size: 12px; color: var(--muted); max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${it.text || ''}</div>
+        </td>
+        <td><span class="tag" style="background: rgba(14,165,233,0.12); color: var(--accent2);">${it.service}</span></td>
+        <td>
+          <strong>${it.voice || 'Mặc định'}</strong>
+          ${it.service === 'Voice Cloning' ? `
+            <div style="margin-top: 4px; font-size: 11px; color: var(--accent-light); display: inline-flex; align-items: center; gap: 3px; background: rgba(16,185,129,0.1); padding: 2px 6px; border-radius: 4px;">
+              <i data-lucide="shield-check" style="width: 11px; height: 11px;"></i>
+              <span>Kho giọng lưu vĩnh viễn</span>
+            </div>` : ''}
+        </td>
+        <td><span style="font-weight: 600; color: var(--accent-light);">${it.duration_s}s</span></td>
+        <td><span style="font-family: Consolas; color: var(--warn); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="clock" style="width: 12px; height: 12px;"></i> ${it.elapsed_s}s</span></td>
+        <td>
+          <div style="font-size: 12.5px; color: #cbd5e1; font-weight: 500;">${it.created_at}</div>
+          <div style="margin-top: 4px; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(234, 179, 8, 0.12); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.25);">
+            <i data-lucide="timer" style="width: 11px; height: 11px;"></i>
+            <span>Tự xóa sau 24h (còn ${it.remaining_label || '24h'})</span>
+          </div>
+        </td>
+        <td>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn-secondary" style="padding: 5px 9px; font-size: 12px;" onclick="playHistoryAudio('${it.filename}')">
+              <i data-lucide="play" style="width: 12px; height: 12px;"></i>
+              <span>Nghe</span>
+            </button>
+            <a href="/api/history/audio/${it.filename}" download="${it.filename}" class="btn-secondary" style="padding: 5px 9px; font-size: 12px; text-decoration: none;">
+              <i data-lucide="download" style="width: 12px; height: 12px;"></i>
+              <span>Tải</span>
+            </a>
+            <button class="btn-secondary" style="padding: 5px 9px; font-size: 12px; color: var(--danger);" onclick="deleteHistoryItem('${it.id}', '${escapeJs(it.title || it.filename)}')">
+              <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
+            </button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+    refreshIcons();
+  } catch (e) {
+    console.error("Lỗi tải lịch sử:", e);
+  }
+}
+
+function playHistoryAudio(fn) {
+  const p = new Audio(`/api/history/audio/${fn}`);
+  p.play();
+  showToast("Đang phát audio", `File: ${fn}`, "info", 2500);
+}
+
+// XÓA MƯỢT MÀ VỚI TOAST GÓC PHẢI TRÊN
+async function deleteHistoryItem(id, title) {
+  const row = document.getElementById(`row-${id}`);
+  if (row) {
+    row.classList.add('removing');
+  }
+
+  try {
+    await fetch(`/api/history/${id}`, { method: 'DELETE' });
+
+    showToast(
+      "Đã xóa file thành công",
+      `Audio "${title}" đã được gỡ bỏ khỏi thư viện.`,
+      "danger",
+      3500
+    );
+
+    setTimeout(() => {
+      loadHistory();
+    }, 300);
+  } catch (err) {
+    showToast("Lỗi khi xóa", err.message, "danger");
+    if (row) row.classList.remove('removing');
+  }
+}
+
+// Fetch Voices List
+async function loadVoices() {
+  try {
+    const r = await fetch('/api/voices');
+    const data = await r.json();
+    allVoices = data.map(parseVoice);
+    renderVoiceGrid(allVoices);
+    populateVoiceSelects(allVoices);
+    refreshIcons();
+  } catch(e) {
+    console.error("Lỗi tải giọng:", e);
+  }
+}
+
+function parseVoice(raw) {
+  let id = raw.id;
+  let fullName = raw.name || raw.id;
+  let isCustom = !!raw.is_custom || id.toLowerCase().includes('nhật phong') || fullName.toLowerCase().includes('clone');
+  let isFeatured = fullName.includes('⭐') || isCustom;
+  let cleanName = fullName.replace('⭐', '').trim();
+  let parts = cleanName.split('—');
+  let displayName = parts[0].trim();
+  let desc = parts[1] ? parts[1].trim() : (isCustom ? 'Giọng clone của bạn' : '');
+
+  let gender = raw.gender || 'other';
+  if (!gender) {
+    if (desc.includes('Nam') && !desc.includes('Việt Nam')) gender = 'male';
+    if (desc.includes('Nữ')) gender = 'female';
+  }
+
+  let region = '';
+  if (desc.includes('Bắc')) region = 'Bắc';
+  else if (desc.includes('Trung')) region = 'Trung';
+  else if (desc.includes('Nam')) region = 'Nam';
+
+  return { id, displayName, desc, isFeatured, isCustom, gender, region };
+}
+
+function renderVoiceGrid(voices) {
+  const grid = document.getElementById('voices-grid');
+  grid.innerHTML = '';
+  // Ưu tiên giọng của bạn (custom) lên đầu danh sách
+  const sorted = [...voices].sort((a, b) => {
+    if (a.isCustom && !b.isCustom) return -1;
+    if (!a.isCustom && b.isCustom) return 1;
+    return 0;
+  });
+
+  sorted.forEach(v => {
+    const card = document.createElement('div');
+    card.className = 'voice-card';
+    card.id = `card-${escapeId(v.id)}`;
+
+    let avatarIcon = '<i data-lucide="user"></i>';
+    let avatarClass = 'avatar';
+    if (v.isCustom) {
+      avatarClass = 'avatar custom';
+      avatarIcon = '<i data-lucide="sparkles"></i>';
+    } else if (v.gender === 'female') {
+      avatarClass = 'avatar female';
+    } else if (v.gender === 'male') {
+      avatarClass = 'avatar male';
+    }
+
+    const regionTagClass = v.region === 'Bắc' ? 'tag bac' : (v.region === 'Trung' ? 'tag trung' : (v.region === 'Nam' ? 'tag nam' : 'tag'));
+
+    card.innerHTML = `
+      <div>
+        <div style="display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px;">
+          <div class="${avatarClass}">${avatarIcon}</div>
+          <div style="flex-grow: 1; min-width: 0;">
+            <div style="font-weight: 700; font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px;">
+              <span>${v.displayName}</span>
+              ${v.isFeatured ? '<i data-lucide="star" style="width: 14px; height: 14px; color: #fbbf24; fill: #fbbf24;"></i>' : ''}
+            </div>
+            <div style="font-size: 12px; color: var(--muted); margin-top: 3px;">${v.desc || 'Giọng đọc chuẩn tiếng Việt'}</div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px;">
+          ${v.isCustom ? '<span class="tag custom-tag">Giọng của bạn</span>' : ''}
+          ${v.region ? `<span class="${regionTagClass}">Miền ${v.region}</span>` : ''}
+          ${v.gender === 'female' ? '<span class="tag">Nữ</span>' : (v.gender === 'male' ? '<span class="tag">Nam</span>' : '')}
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; margin-top: auto;">
+        <button class="btn-card-play" id="btn-${escapeId(v.id)}" onclick="toggleVoice('${escapeJs(v.id)}')">
+          <i data-lucide="play" id="icon-${escapeId(v.id)}" style="width: 14px; height: 14px;"></i>
+          <span id="txt-${escapeId(v.id)}">Nghe thử</span>
+        </button>
+        <div class="wave-bars" id="wave-${escapeId(v.id)}">
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  refreshIcons();
+}
+
+function populateVoiceSelects(voices) {
+  const ttsSelect = document.getElementById('tts-voice-select');
+  const srtSelect = document.getElementById('srt-voice-select');
+  const pdfSelect = document.getElementById('pdf-voice-select');
+
+  const sorted = [...voices].sort((a, b) => {
+    if (a.isCustom && !b.isCustom) return -1;
+    if (!a.isCustom && b.isCustom) return 1;
+    return 0;
+  });
+
+  const optionsHtml = sorted.map(v => {
+    const label = v.isCustom ? `⭐ ${v.displayName} (Giọng của bạn)` : `${v.displayName} (${v.region || 'Chuẩn'})`;
+    return `<option value="${v.id}">${label}</option>`;
+  }).join('');
+
+  if (ttsSelect) ttsSelect.innerHTML = optionsHtml;
+  if (srtSelect) srtSelect.innerHTML = optionsHtml;
+  if (pdfSelect) pdfSelect.innerHTML = optionsHtml;
+  setupDialogueDefaults();
+}
+
+function escapeId(s){ return encodeURIComponent(s).replace(/%/g, '_'); }
+function escapeJs(s){ return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+
+const sampleTxt = document.getElementById('sample-text');
+const charCnt = document.getElementById('char-cnt');
+sampleTxt.addEventListener('input', () => { charCnt.textContent = `${sampleTxt.value.length} ký tự`; });
+charCnt.textContent = `${sampleTxt.value.length} ký tự`;
+function setSample(t) { sampleTxt.value = t; charCnt.textContent = `${t.length} ký tự`; }
+
+// TTS input counter
+const ttsInput = document.getElementById('tts-input-text');
+const ttsCnt = document.getElementById('tts-char-cnt');
+if (ttsInput && ttsCnt) {
+  function updateTTSCnt() {
+    const len = ttsInput.value.length;
+    const words = ttsInput.value.trim() ? ttsInput.value.trim().split(/\s+/).length : 0;
+    ttsCnt.textContent = `${len} ký tự | ${words} từ`;
+  }
+  ttsInput.addEventListener('input', updateTTSCnt);
+  updateTTSCnt();
+}
+
+function toggleVoice(vid) {
+  if (activeVoiceId === vid) stopAllAudio();
+  else playVoiceStream(vid);
+}
+
+function stopAllAudio() {
+  streamJobId++;
+  if (currentController) { currentController.abort(); currentController = null; }
+  activeSourceNodes.forEach(n => { try { n.stop(); n.disconnect(); } catch(e){} });
+  activeSourceNodes = [];
+  if (activeVoiceId) {
+    updateCardUI(activeVoiceId, false);
+    activeVoiceId = null;
+  }
+}
+
+function updateCardUI(vid, isPlaying) {
+  const card = document.getElementById(`card-${escapeId(vid)}`);
+  const icon = document.getElementById(`icon-${escapeId(vid)}`);
+  const txt = document.getElementById(`txt-${escapeId(vid)}`);
+  if (!card) return;
+  if (isPlaying) {
+    card.classList.add('is-playing');
+    if (txt) txt.textContent = 'Dừng';
+  } else {
+    card.classList.remove('is-playing');
+    if (txt) txt.textContent = 'Nghe thử';
+  }
+}
+
+async function playVoiceStream(vid) {
+  stopAllAudio();
+  const t = sampleTxt.value.trim();
+  if (!t) return showToast("Vui lòng nhập văn bản", "Hãy gõ câu tiếng Việt bạn muốn nghe thử!", "warn");
+
+  activeVoiceId = vid;
+  updateCardUI(vid, true);
+  const currentJob = ++streamJobId;
+  currentController = new AbortController();
+
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!audioCtx || audioCtx.state === 'closed') audioCtx = new AudioCtx();
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+  let playHead = audioCtx.currentTime + 0.08;
+  const SAMPLE_RATE = 48000;
+  let headerConsumed = false;
+  let leftover = new Uint8Array(0);
+
+  try {
+    const res = await fetch(`/api/stream?text=${encodeURIComponent(t)}&voice_id=${encodeURIComponent(vid)}`, {
+      signal: currentController.signal
+    });
+    const reader = res.body.getReader();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done || currentJob !== streamJobId) break;
+
+      let combined = value;
+      if (leftover.length) {
+        combined = new Uint8Array(leftover.length + value.length);
+        combined.set(leftover, 0);
+        combined.set(value, leftover.length);
+        leftover = new Uint8Array(0);
+      }
+      if (!headerConsumed) {
+        if (combined.length < 44) { leftover = combined; continue; }
+        combined = combined.slice(44);
+        headerConsumed = true;
+      }
+      const usable = combined.length - (combined.length % 2);
+      if (usable < combined.length) leftover = combined.slice(usable);
+
+      if (usable > 0 && currentJob === streamJobId) {
+        const view = new DataView(combined.buffer, combined.byteOffset, usable);
+        const n = Math.floor(usable / 2);
+        const float32 = audioCtx.createBuffer(1, n, SAMPLE_RATE);
+        const ch = float32.getChannelData(0);
+        for (let i = 0; i < n; i++) ch[i] = Math.max(-1, Math.min(1, view.getInt16(i*2, true) / 32768));
+
+        const src = audioCtx.createBufferSource();
+        src.buffer = float32;
+        src.connect(audioCtx.destination);
+        const startAt = Math.max(playHead, audioCtx.currentTime + 0.04);
+        src.start(startAt);
+        playHead = startAt + float32.duration;
+        activeSourceNodes.push(src);
+      }
+    }
+  } catch(e) {
+    if (e.name !== 'AbortError') console.error(e);
+  }
+}
+
+function filterVoices(f) {
+  const filtered = allVoices.filter(v => {
+    if (f === 'custom') return v.isCustom;
+    if (f === 'featured') return v.isFeatured;
+    if (f === 'female') return v.gender === 'female';
+    if (f === 'male') return v.gender === 'male';
+    if (['Bắc', 'Trung', 'Nam'].includes(f)) return v.region === f;
+    return true;
+  });
+  renderVoiceGrid(filtered);
+}
+function onSearchVoices() {
+  const q = document.getElementById('voice-search').value.trim().toLowerCase();
+  const filtered = allVoices.filter(v => v.displayName.toLowerCase().includes(q) || v.desc.toLowerCase().includes(q));
+  renderVoiceGrid(filtered);
+}
+
+// --- TEXT TO SPEECH (TTS) HANDLER ---
+async function executeTTS() {
+  const text = document.getElementById('tts-input-text').value.trim();
+  if (!text) return showToast("Thiếu văn bản", "Vui lòng nhập văn bản cần đọc!", "warn");
+  const voice = document.getElementById('tts-voice-select').value;
+  const speed = parseFloat(document.getElementById('tts-speed-select').value) || 1.0;
+
+  const btn = document.getElementById('btn-start-tts');
+  btn.disabled = true;
+
+  const progressCard = document.getElementById('tts-progress-card');
+  progressCard.style.display = 'block';
+  const timer = startTimer('tts-timer', 'tts-progress-fill', 'tts-progress-status', `Đang tổng hợp giọng nói (${voice})...`);
+
+  try {
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, voice_id: voice, speed })
+    });
+    if (!res.ok) throw new Error(await res.text());
+
+    const totalSeconds = timer.stop(true);
+    document.getElementById('tts-progress-status').innerHTML = `<i data-lucide="check-circle-2" style="width: 16px; height: 16px;"></i> <span>Hoàn tất sau ${totalSeconds}s!</span>`;
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const player = document.getElementById('tts-audio-player');
+    player.src = url;
+    document.getElementById('tts-result-box').style.display = 'block';
+    document.getElementById('tts-time-result').textContent = `Thời gian thực hiện: ${totalSeconds} giây`;
+    player.play();
+
+    showToast("Tổng hợp giọng nói thành công!", `Thời gian hoàn tất: ${totalSeconds}s`, "success", 4000);
+    loadHistory();
+    refreshIcons();
+  } catch (err) {
+    timer.stop(false);
+    showToast("Lỗi tổng hợp giọng nói", err.message, "danger");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// --- VOICE CLONING HANDLER WITH PROGRESS BAR & TIMER ---
+function onCloneFileSelected(input) {
+  if (input.files && input.files[0]) {
+    document.getElementById('clone-file-label').textContent = `Đã chọn: ${input.files[0].name}`;
+    showToast("Đã tải file audio", input.files[0].name, "info", 2000);
+  }
+}
+
+async function executeVoiceClone() {
+  const fileInput = document.getElementById('clone-file-input');
+  const text = document.getElementById('clone-text').value.trim();
+  const voiceName = document.getElementById('clone-voice-name').value.trim() || 'Nhật Phong';
+
+  if (!fileInput.files || !fileInput.files[0]) return showToast("Thiếu file âm thanh", "Vui lòng chọn 1 file audio mẫu!", "warn");
+  if (!text) return showToast("Thiếu văn bản", "Vui lòng nhập văn bản muốn đọc!", "warn");
+
+  const btn = document.getElementById('btn-start-clone');
+  btn.disabled = true;
+
+  const progressCard = document.getElementById('clone-progress-card');
+  progressCard.style.display = 'block';
+  const timer = startTimer('clone-timer', 'clone-progress-fill', 'clone-progress-status', `Đang sao chép giọng '${voiceName}'...`);
+
+  const formData = new FormData();
+  formData.append('audio_file', fileInput.files[0]);
+  formData.append('text', text);
+  formData.append('denoise', document.getElementById('clone-denoise').checked);
+  formData.append('save_as_preset', true);
+  formData.append('voice_name', voiceName);
+
+  try {
+    const res = await fetch('/api/clone', { method: 'POST', body: formData });
+    if (!res.ok) throw new Error(await res.text());
+
+    const totalSeconds = timer.stop(true);
+    document.getElementById('clone-progress-status').innerHTML = `<i data-lucide="check-circle-2" style="width: 16px; height: 16px;"></i> <span>Đã sao chép thành công sau ${totalSeconds}s!</span>`;
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const player = document.getElementById('clone-audio-player');
+    player.src = url;
+    document.getElementById('clone-result-box').style.display = 'block';
+    document.getElementById('clone-time-result').textContent = `Thời gian thực hiện: ${totalSeconds} giây`;
+    player.play();
+
+    // Reload voices immediately so Nhật Phong appears everywhere!
+    await loadVoices();
+    loadHistory();
+
+    showToast("Nhân bản thành công!", `Giọng "${voiceName}" đã được lưu vào Thư viện giọng đọc!`, "success", 4500);
+    refreshIcons();
+  } catch (err) {
+    timer.stop(false);
+    document.getElementById('clone-progress-status').innerHTML = `<i data-lucide="alert-circle" style="width: 16px; height: 16px; color: var(--danger);"></i> <span>Lỗi: ${err.message}</span>`;
+    showToast("Lỗi khi clone giọng", err.message, "danger");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// --- PODCAST DIALOGUE HANDLER WITH TIMER ---
+function setupDialogueDefaults() {
+  const container = document.getElementById('dialogue-container');
+  if (container.children.length === 0) {
+    addDialogueLine("Hải Đăng", "Xin chào Mai Anh, bạn có thể giải thích công nghệ AI TTS hoạt động thế nào không?");
+    addDialogueLine("Mai Anh", "Tất nhiên rồi! Mô hình sẽ phân tích âm vị học tiếng Việt và sinh sóng âm thanh cực kỳ tự nhiên.");
+  }
+}
+
+function addDialogueLine(speaker = "", text = "") {
+  const container = document.getElementById('dialogue-container');
+  const row = document.createElement('div');
+  row.style.display = 'flex';
+  row.style.gap = '10px';
+  row.style.marginBottom = '10px';
+
+  const selectOptions = allVoices.map(v => `<option value="${v.id}" ${v.id === speaker ? 'selected' : ''}>${v.displayName}</option>`).join('');
+
+  row.innerHTML = `
+    <select class="dialogue-speaker" style="width: 170px; flex-shrink: 0;">${selectOptions}</select>
+    <input type="text" class="dialogue-text" placeholder="Nhập câu thoại..." value="${text}" style="flex-grow: 1;">
+    <button class="btn-secondary" style="color: var(--danger); padding: 8px 12px;" onclick="this.parentElement.remove()">
+      <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+    </button>
+  `;
+  container.appendChild(row);
+  refreshIcons();
+}
+
+async function generatePodcastAudio() {
+  const rows = document.querySelectorAll('#dialogue-container > div');
+  const lines = [];
+  rows.forEach(r => {
+    const spk = r.querySelector('.dialogue-speaker').value;
+    const txt = r.querySelector('.dialogue-text').value.trim();
+    if (txt) lines.push({ speaker: spk, text: txt });
+  });
+  if (lines.length === 0) return showToast("Thiếu lời thoại", "Vui lòng thêm ít nhất 1 câu thoại!", "warn");
+
+  const btn = document.getElementById('btn-start-podcast');
+  btn.disabled = true;
+
+  const progressCard = document.getElementById('podcast-progress-card');
+  progressCard.style.display = 'block';
+  const timer = startTimer('podcast-timer', 'podcast-progress-fill', 'podcast-progress-status', 'Đang tạo các đoạn thoại hội thoại...');
+
+  const pause = parseInt(document.getElementById('podcast-pause').value);
+  try {
+    const res = await fetch('/api/podcast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lines, pause_ms: pause })
+    });
+    if (!res.ok) throw new Error(await res.text());
+
+    const totalSeconds = timer.stop(true);
+    document.getElementById('podcast-progress-status').innerHTML = `<i data-lucide="check-circle-2" style="width: 16px; height: 16px;"></i> <span>Hoàn tất podcast trong ${totalSeconds}s!</span>`;
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const p = document.getElementById('podcast-audio-player');
+    p.src = url;
+    document.getElementById('podcast-result-box').style.display = 'block';
+    p.play();
+
+    showToast("Tạo podcast thành công!", `Hoàn tất sau ${totalSeconds} giây`, "success", 4000);
+    loadHistory();
+    refreshIcons();
+  } catch (err) {
+    timer.stop(false);
+    showToast("Lỗi tạo podcast", err.message, "danger");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// --- SRT DUBBING HANDLER WITH TIMER ---
+async function generateSrtDubbing() {
+  const input = document.getElementById('srt-file-input');
+  if (!input.files || !input.files[0]) return showToast("Thiếu file SRT", "Vui lòng chọn file .srt!", "warn");
+
+  const btn = document.getElementById('btn-start-srt');
+  btn.disabled = true;
+
+  const progressCard = document.getElementById('srt-progress-card');
+  progressCard.style.display = 'block';
+  const timer = startTimer('srt-timer', 'srt-progress-fill', 'srt-progress-status', 'Đang sinh âm thanh lồng tiếng theo timeline...');
+
+  const voice = document.getElementById('srt-voice-select').value;
+  const form = new FormData();
+  form.append('srt_file', input.files[0]);
+  form.append('voice_id', voice);
+
+  try {
+    const res = await fetch('/api/srt', { method: 'POST', body: form });
+    if (!res.ok) throw new Error(await res.text());
+
+    const totalSeconds = timer.stop(true);
+    document.getElementById('srt-progress-status').innerHTML = `<i data-lucide="check-circle-2" style="width: 16px; height: 16px;"></i> <span>Lồng tiếng hoàn tất sau ${totalSeconds}s!</span>`;
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const p = document.getElementById('srt-audio-player');
+    p.src = url;
+    document.getElementById('srt-result-box').style.display = 'block';
+    p.play();
+
+    showToast("Lồng tiếng SRT thành công!", `Hoàn tất sau ${totalSeconds} giây`, "success", 4000);
+    loadHistory();
+    refreshIcons();
+  } catch (err) {
+    timer.stop(false);
+    showToast("Lỗi lồng tiếng SRT", err.message, "danger");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// --- PDF EXTRACT & READ HANDLER WITH TIMER ---
+async function extractPdfText(input) {
+  if (!input.files || !input.files[0]) return;
+  const form = new FormData();
+  form.append('pdf_file', input.files[0]);
+  try {
+    const res = await fetch('/api/pdf/extract', { method: 'POST', body: form });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    document.getElementById('pdf-content-area').style.display = 'block';
+    document.getElementById('pdf-page-count').textContent = `Tổng cộng: ${data.total_pages} trang`;
+    document.getElementById('pdf-text-extracted').value = data.full_text;
+    showToast("Đã trích xuất PDF", `Tìm thấy ${data.total_pages} trang nội dung`, "info", 3000);
+    refreshIcons();
+  } catch (err) {
+    showToast("Lỗi đọc PDF", err.message, "danger");
+  }
+}
+
+async function generatePdfAudio() {
+  const text = document.getElementById('pdf-text-extracted').value.trim();
+  if (!text) return showToast("Văn bản PDF rỗng", "Vui lòng chọn file PDF có chứa chữ!", "warn");
+  const voice = document.getElementById('pdf-voice-select').value;
+
+  const btn = document.getElementById('btn-start-pdf');
+  btn.disabled = true;
+
+  const progressCard = document.getElementById('pdf-progress-card');
+  progressCard.style.display = 'block';
+  const timer = startTimer('pdf-timer', 'pdf-progress-fill', 'pdf-progress-status', 'Đang chuyển đổi văn bản PDF sang sách nói...');
+
+  try {
+    const res = await fetch('/api/pdf/synthesize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text.slice(0, 3000), voice_id: voice })
+    });
+    if (!res.ok) throw new Error(await res.text());
+
+    const totalSeconds = timer.stop(true);
+    document.getElementById('pdf-progress-status').innerHTML = `<i data-lucide="check-circle-2" style="width: 16px; height: 16px;"></i> <span>Đã tạo sách nói sau ${totalSeconds}s!</span>`;
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const p = document.getElementById('pdf-audio-player');
+    p.src = url;
+    document.getElementById('pdf-result-box').style.display = 'block';
+    p.play();
+
+    showToast("Tạo sách nói PDF thành công!", `Hoàn tất sau ${totalSeconds} giây`, "success", 4000);
+    loadHistory();
+    refreshIcons();
+  } catch (err) {
+    timer.stop(false);
+    showToast("Lỗi tạo audio PDF", err.message, "danger");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Initial render
+document.addEventListener('DOMContentLoaded', () => {
+  loadVoices();
+});
+</script>
+</body>
+</html>
