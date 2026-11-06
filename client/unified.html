@@ -938,8 +938,16 @@ textarea { resize: vertical; min-height: 90px; }
         <span>Giọng clone sẽ được lưu vĩnh viễn trong Kho giọng đọc (không bị xóa theo lịch sử 24h).</span>
       </div>
 
-      <label>3. Văn bản muốn giọng clone đọc thử</label>
-      <textarea id="clone-text" placeholder="Nhập câu tiếng Việt muốn giọng clone phát âm...">Xin chào các bạn, đây chính là giọng nói của tôi vừa được sao chép bằng công nghệ trí tuệ nhân tạo Adragon Studio!</textarea>
+      <div style="margin-bottom: 16px;">
+        <label>3. Ngôn ngữ của văn bản cần đọc</label>
+        <select id="clone-language" style="max-width: 420px; padding: 10px 14px; border-radius: 8px; background: #1e293b; border: 1px solid rgba(255,255,255,0.15); color: #f8fafc; font-size: 14px; width: 100%; cursor: pointer;" onchange="onCloneLangChange(this.value)">
+          <option value="vi" selected>🇻🇳 Tiếng Việt (VieNeu-TTS Core — Siêu tốc ONNX)</option>
+          <option value="ja">🇯🇵 Tiếng Nhật (Japanese Kanji/Kana — XTTS-v2 Neural)</option>
+        </select>
+      </div>
+
+      <label>4. Văn bản muốn giọng clone đọc thử</label>
+      <textarea id="clone-text" placeholder="Nhập câu tiếng Việt hoặc tiếng Nhật muốn giọng clone phát âm...">Xin chào các bạn, đây chính là giọng nói của tôi vừa được sao chép bằng công nghệ trí tuệ nhân tạo Adragon Studio!</textarea>
 
       <div style="display: flex; gap: 20px; margin: 16px 0; align-items: center; flex-wrap: wrap;">
         <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; text-transform: none; margin: 0;">
@@ -1458,6 +1466,8 @@ function parseVoice(raw) {
   let displayName = parts[0].trim();
   let desc = parts[1] ? parts[1].trim() : (isCustom ? 'Giọng clone của bạn' : '');
 
+  let language = raw.language || (desc.toLowerCase().includes('tiếng nhật') || desc.toLowerCase().includes('nhật') ? 'ja' : 'vi');
+
   let gender = raw.gender || 'other';
   if (!gender) {
     if (desc.includes('Nam') && !desc.includes('Việt Nam')) gender = 'male';
@@ -1469,7 +1479,7 @@ function parseVoice(raw) {
   else if (desc.includes('Trung')) region = 'Trung';
   else if (desc.includes('Nam')) region = 'Nam';
 
-  return { id, displayName, desc, isFeatured, isCustom, gender, region };
+  return { id, displayName, desc, isFeatured, isCustom, gender, region, language };
 }
 
 function renderVoiceGrid(voices) {
@@ -1509,11 +1519,12 @@ function renderVoiceGrid(voices) {
               <span>${v.displayName}</span>
               ${v.isFeatured ? '<i data-lucide="star" style="width: 14px; height: 14px; color: #fbbf24; fill: #fbbf24;"></i>' : ''}
             </div>
-            <div style="font-size: 12px; color: var(--muted); margin-top: 3px;">${v.desc || 'Giọng đọc chuẩn tiếng Việt'}</div>
+            <div style="font-size: 12px; color: var(--muted); margin-top: 3px;">${v.desc || (v.language === 'ja' ? 'Giọng clone Tiếng Nhật (XTTS-v2)' : 'Giọng đọc chuẩn tiếng Việt')}</div>
           </div>
         </div>
         <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px;">
           ${v.isCustom ? '<span class="tag custom-tag">Giọng của bạn</span>' : ''}
+          ${v.language === 'ja' ? '<span class="tag" style="background: rgba(236,72,153,0.15); color: #f472b6; border-color: rgba(236,72,153,0.3);">Tiếng Nhật</span>' : '<span class="tag" style="background: rgba(59,130,246,0.15); color: #60a5fa; border-color: rgba(59,130,246,0.3);">Tiếng Việt</span>'}
           ${v.region ? `<span class="${regionTagClass}">Miền ${v.region}</span>` : ''}
           ${v.gender === 'female' ? '<span class="tag">Nữ</span>' : (v.gender === 'male' ? '<span class="tag">Nam</span>' : '')}
         </div>
@@ -1545,7 +1556,8 @@ function populateVoiceSelects(voices) {
   });
 
   const optionsHtml = sorted.map(v => {
-    const label = v.isCustom ? `⭐ ${v.displayName} (Giọng của bạn)` : `${v.displayName} (${v.region || 'Chuẩn'})`;
+    const langTag = v.language === 'ja' ? ' [Tiếng Nhật]' : '';
+    const label = v.isCustom ? `⭐ ${v.displayName} (Giọng của bạn)${langTag}` : `${v.displayName} (${v.region || 'Chuẩn'})`;
     return `<option value="${v.id}">${label}</option>`;
   }).join('');
 
@@ -1609,8 +1621,12 @@ function updateCardUI(vid, isPlaying) {
 
 async function playVoiceStream(vid) {
   stopAllAudio();
-  const t = sampleTxt.value.trim();
-  if (!t) return showToast("Vui lòng nhập văn bản", "Hãy gõ câu tiếng Việt bạn muốn nghe thử!", "warn");
+  const v = (allVoices || []).find(x => x.id === vid);
+  let t = sampleTxt.value.trim();
+  if (v && v.language === 'ja' && (!t || !/[\u3040-\u30ff\u4e00-\u9faf]/.test(t))) {
+    t = "こんにちは！Adragon Studioの音声クローンです。よろしくお願いいたします。";
+  }
+  if (!t) return showToast("Vui lòng nhập văn bản", "Hãy gõ câu bạn muốn nghe thử!", "warn");
 
   activeVoiceId = vid;
   updateCardUI(vid, true);
@@ -1734,6 +1750,21 @@ async function executeTTS() {
 }
 
 // --- VOICE CLONING HANDLER WITH PROGRESS BAR & TIMER ---
+function onCloneLangChange(lang) {
+  const txt = document.getElementById('clone-text');
+  if (lang === 'ja') {
+    txt.placeholder = "Nhập văn bản tiếng Nhật (Kanji, Hiragana, Katakana)...";
+    if (txt.value.includes("Xin chào các bạn")) {
+      txt.value = "赤ちゃんにミルクを作ったことはありますか？粉ミルクを量って、お湯で溶かして、手首に一滴垂らして…";
+    }
+  } else {
+    txt.placeholder = "Nhập câu tiếng Việt muốn giọng clone phát âm...";
+    if (txt.value.includes("赤ちゃんにミルク")) {
+      txt.value = "Xin chào các bạn, đây chính là giọng nói của tôi vừa được sao chép bằng công nghệ trí tuệ nhân tạo Adragon Studio!";
+    }
+  }
+}
+
 function onCloneFileSelected(input) {
   if (input.files && input.files[0]) {
     document.getElementById('clone-file-label').textContent = `Đã chọn: ${input.files[0].name}`;
@@ -1756,9 +1787,12 @@ async function executeVoiceClone() {
   progressCard.style.display = 'block';
   const timer = startTimer('clone-timer', 'clone-progress-fill', 'clone-progress-status', `Đang sao chép giọng '${voiceName}'...`);
 
+  const lang = document.getElementById('clone-language') ? document.getElementById('clone-language').value : 'vi';
+
   const formData = new FormData();
   formData.append('audio_file', fileInput.files[0]);
   formData.append('text', text);
+  formData.append('language', lang);
   formData.append('denoise', document.getElementById('clone-denoise').checked);
   formData.append('save_as_preset', true);
   formData.append('voice_name', voiceName);

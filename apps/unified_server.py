@@ -15,6 +15,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional, List
 import asyncio
+import urllib.parse
 from datetime import datetime, timedelta
 
 # Ensure UTF-8 output on Windows
@@ -72,6 +73,9 @@ def load_custom_voices(tts):
         for v in voices:
             name = v["name"]
             ref_path = v["ref_path"]
+            lang = v.get("language", "vi")
+            if lang in ("ja", "japanese", "tiếng nhật"):
+                continue  # Giọng tiếng Nhật do XTTS xử lý trực tiếp
             if os.path.exists(ref_path) and name not in tts._preset_voices:
                 try:
                     tts.add_voice(
@@ -101,6 +105,31 @@ def get_tts():
         load_custom_voices(tts_instance)
         print("✅ Adragon Studio đã sẵn sàng!")
     return tts_instance
+
+
+xtts_instance = None
+
+
+def get_xtts():
+    global xtts_instance
+    if xtts_instance is None:
+        os.environ["COQUI_TOS_AGREED"] = "1"
+        os.environ["TTS_HOME"] = str(ROOT_DIR / "models_tts")
+        import torch
+        _orig_load = torch.load
+
+        def _safe_load(*args, **kwargs):
+            kwargs.setdefault("weights_only", False)
+            return _orig_load(*args, **kwargs)
+
+        torch.load = _safe_load
+
+        from TTS.api import TTS
+        device = "mps" if torch.backends.mps.is_available() else "cpu"
+        print(f"⏳ Đang nạp mô hình đa ngôn ngữ XTTS-v2 ({device})...")
+        xtts_instance = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(device)
+        print("✅ XTTS-v2 đã sẵn sàng phục vụ Tiếng Nhật & Đa ngôn ngữ!")
+    return xtts_instance
 
 
 def cleanup_expired_history(max_age_hours: float = 24.0) -> int:
@@ -290,10 +319,13 @@ async def get_voices():
                 cvs = json.loads(CUSTOM_VOICES_FILE.read_text(encoding="utf-8"))
                 for cv in cvs:
                     custom_names.add(cv["name"])
+                    is_ja = cv.get("language") in ("ja", "japanese", "tiếng nhật")
+                    tag = "Tiếng Nhật" if is_ja else "Tiếng Việt"
                     result.append({
                         "id": cv["name"],
-                        "name": f"⭐ {cv['name']} — Giọng của bạn (Clone)",
+                        "name": f"⭐ {cv['name']} — Giọng của bạn ({tag})",
                         "is_custom": True,
+                        "language": "ja" if is_ja else "vi",
                         "gender": cv.get("gender", "")
                     })
             except Exception:
@@ -303,14 +335,14 @@ async def get_voices():
             if isinstance(item, (tuple, list)) and len(item) == 2:
                 label, vid = item
                 if vid not in custom_names:
-                    result.append({"id": vid, "name": label, "is_custom": False})
+                    result.append({"id": vid, "name": label, "is_custom": False, "language": "vi"})
             else:
                 s_id = str(item)
                 if s_id not in custom_names:
-                    result.append({"id": s_id, "name": s_id, "is_custom": False})
+                    result.append({"id": s_id, "name": s_id, "is_custom": False, "language": "vi"})
         return result
     except Exception as e:
-        return [{"id": "Hải Đăng", "name": "Hải Đăng", "is_custom": False}]
+        return [{"id": "Hải Đăng", "name": "Hải Đăng", "is_custom": False, "language": "vi"}]
 
 
 def _pcm16(audio_f32: np.ndarray) -> bytes:
@@ -320,6 +352,52 @@ def _pcm16(audio_f32: np.ndarray) -> bytes:
 # --- 2. SERVICE: STREAMING AUDIO FOR VOICE EXPLORER ---
 @app.get("/api/stream")
 async def stream_audio(text: str, voice_id: Optional[str] = None):
+    # Check if voice_id is Japanese custom voice or contains Japanese characters
+    custom_voice = None
+    if CUSTOM_VOICES_FILE.exists():
+        try:
+            cvs = json.loads(CUSTOM_VOICES_FILE.read_text(encoding="utf-8"))
+            custom_voice = next((x for x in cvs if x["name"] == voice_id), None)
+        except Exception:
+            pass
+
+    is_ja_voice = custom_voice and custom_voice.get("language") in ("ja", "japanese", "tiếng nhật")
+    has_ja_chars = any('\u3040' <= c <= '\u30ff' or '\u4e00' <= c <= '\u9faf' for c in text)
+
+    if (is_ja_voice and custom_voice and os.path.exists(custom_voice.get("ref_path", ""))) or (has_ja_chars and is_ja_voice):
+        xtts = get_xtts()
+        speaker_ref = custom_voice["ref_path"]
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+            tmp_out = tmp.name
+        try:
+            xtts.tts_to_file(
+                text=text,
+                speaker_wav=speaker_ref,
+                language="ja",
+                file_path=tmp_out
+            )
+            audio, sr = sf.read(tmp_out)
+            if sr != SAMPLE_RATE:
+                audio = librosa.resample(audio, orig_sr=sr, target_sr=SAMPLE_RATE)
+
+            def ja_generator():
+                h = io.BytesIO()
+                with wave.open(h, "wb") as w:
+                    w.setnchannels(1)
+                    w.setsampwidth(2)
+                    w.setframerate(SAMPLE_RATE)
+                    w.setnframes(len(audio))
+                yield h.getvalue()
+                yield _pcm16(audio)
+
+            return StreamingResponse(ja_generator(), media_type="audio/wav")
+        finally:
+            if os.path.exists(tmp_out):
+                try:
+                    os.remove(tmp_out)
+                except Exception:
+                    pass
+
     tts = get_tts()
 
     def generator():
@@ -347,26 +425,52 @@ class TTSRequest(BaseModel):
 
 @app.post("/api/tts")
 async def synthesize_tts(req: TTSRequest):
-    tts = get_tts()
     t = req.text.strip()
     if not t:
         raise HTTPException(status_code=400, detail="Văn bản không được để trống")
 
     t0 = time.perf_counter()
-    audio = tts.infer(text=t, voice=req.voice_id)
+    out_name = f"tts_{uuid.uuid4().hex[:8]}.wav"
+    out_path = OUTPUTS_DIR / out_name
 
-    # Optional speed adjustment
-    if req.speed != 1.0 and 0.5 <= req.speed <= 2.0:
+    # Check if custom voice is Japanese
+    custom_voice = None
+    if CUSTOM_VOICES_FILE.exists():
         try:
-            audio = librosa.effects.time_stretch(audio, rate=req.speed)
+            cvs = json.loads(CUSTOM_VOICES_FILE.read_text(encoding="utf-8"))
+            custom_voice = next((x for x in cvs if x["name"] == req.voice_id), None)
         except Exception:
             pass
 
-    elapsed_s = time.perf_counter() - t0
-    dur_s = len(audio) / SAMPLE_RATE
+    is_ja_voice = custom_voice and custom_voice.get("language") in ("ja", "japanese", "tiếng nhật")
+    has_ja_chars = any('\u3040' <= c <= '\u30ff' or '\u4e00' <= c <= '\u9faf' for c in t)
 
-    out_name = f"tts_{uuid.uuid4().hex[:8]}.wav"
-    sf.write(str(OUTPUTS_DIR / out_name), audio, SAMPLE_RATE, format="WAV")
+    if (is_ja_voice and custom_voice and os.path.exists(custom_voice.get("ref_path", ""))) or (has_ja_chars and is_ja_voice):
+        xtts = get_xtts()
+        speaker_ref = custom_voice["ref_path"]
+        xtts.tts_to_file(
+            text=t,
+            speaker_wav=speaker_ref,
+            language="ja",
+            file_path=str(out_path)
+        )
+        audio, out_sr = sf.read(str(out_path))
+        sample_rate_used = out_sr
+    else:
+        tts = get_tts()
+        audio = tts.infer(text=t, voice=req.voice_id)
+        sample_rate_used = SAMPLE_RATE
+
+        # Optional speed adjustment
+        if req.speed != 1.0 and 0.5 <= req.speed <= 2.0:
+            try:
+                audio = librosa.effects.time_stretch(audio, rate=req.speed)
+            except Exception:
+                pass
+        sf.write(str(out_path), audio, SAMPLE_RATE, format="WAV")
+
+    elapsed_s = time.perf_counter() - t0
+    dur_s = len(audio) / sample_rate_used
 
     save_to_history(
         filename=out_name,
@@ -379,7 +483,7 @@ async def synthesize_tts(req: TTSRequest):
     )
 
     buf = io.BytesIO()
-    sf.write(buf, audio, SAMPLE_RATE, format="WAV")
+    sf.write(buf, audio, sample_rate_used, format="WAV")
     buf.seek(0)
     return StreamingResponse(
         buf,
@@ -398,10 +502,10 @@ async def clone_voice(
     audio_file: UploadFile = File(...),
     text: str = Form(...),
     voice_name: Optional[str] = Form(None),
+    language: str = Form("vi"),
     save_as_preset: bool = Form(True),
     denoise: bool = Form(True),
 ):
-    tts = get_tts()
     if not text.strip():
         raise HTTPException(status_code=400, detail="Văn bản cần đọc không được để trống")
 
@@ -413,14 +517,29 @@ async def clone_voice(
         tmp.write(content)
 
     try:
-        audio = tts.infer(text=text, ref_audio=tmp_path, denoise=denoise)
-        elapsed_s = time.perf_counter() - t0
-        dur_s = len(audio) / SAMPLE_RATE
-
-        # Save generated speech to disk
+        lang = (language or "vi").strip().lower()
         out_name = f"cloned_{uuid.uuid4().hex[:8]}.wav"
         out_path = OUTPUTS_DIR / out_name
-        sf.write(str(out_path), audio, SAMPLE_RATE, format="WAV")
+
+        if lang in ("ja", "japanese", "tiếng nhật"):
+            xtts = get_xtts()
+            xtts.tts_to_file(
+                text=text,
+                speaker_wav=tmp_path,
+                language="ja",
+                file_path=str(out_path),
+            )
+            audio, out_sr = sf.read(str(out_path))
+            dur_s = len(audio) / out_sr
+            sample_rate_used = out_sr
+            elapsed_s = time.perf_counter() - t0
+        else:
+            tts = get_tts()
+            audio = tts.infer(text=text, ref_audio=tmp_path, denoise=denoise)
+            elapsed_s = time.perf_counter() - t0
+            dur_s = len(audio) / SAMPLE_RATE
+            sample_rate_used = SAMPLE_RATE
+            sf.write(str(out_path), audio, SAMPLE_RATE, format="WAV")
 
         # Determine voice name
         v_name = voice_name.strip() if (voice_name and voice_name.strip()) else f"Clone_{uuid.uuid4().hex[:4]}"
@@ -429,17 +548,19 @@ async def clone_voice(
         perm_ref_path = REFS_DIR / f"{v_name}.wav"
         shutil.copyfile(tmp_path, str(perm_ref_path))
 
-        # Register into tts active voices
-        try:
-            tts.add_voice(
-                name=v_name,
-                ref_audio=str(perm_ref_path),
-                denoise=denoise,
-                description=f"Giọng clone từ {audio_file.filename}",
-                save=False,
-            )
-        except Exception as e:
-            print(f"⚠️ add_voice warning: {e}")
+        # Register into tts active voices (for Vietnamese engine only)
+        if lang not in ("ja", "japanese", "tiếng nhật"):
+            try:
+                tts_active = get_tts()
+                tts_active.add_voice(
+                    name=v_name,
+                    ref_audio=str(perm_ref_path),
+                    denoise=denoise,
+                    description=f"Giọng clone (Tiếng Việt) từ {audio_file.filename}",
+                    save=False,
+                )
+            except Exception as e:
+                print(f"⚠️ add_voice warning: {e}")
 
         # Save to custom_voices.json
         custom_voices = []
@@ -450,14 +571,17 @@ async def clone_voice(
                 custom_voices = []
         # Update or append
         existing = next((x for x in custom_voices if x["name"] == v_name), None)
+        voice_desc = f"Giọng clone ({'Tiếng Nhật' if lang in ('ja', 'japanese', 'tiếng nhật') else 'Tiếng Việt'}) từ {audio_file.filename}"
         if existing:
             existing["ref_path"] = str(perm_ref_path)
+            existing["language"] = lang
         else:
             custom_voices.append({
                 "name": v_name,
                 "ref_path": str(perm_ref_path),
                 "filename": audio_file.filename,
-                "description": f"Giọng clone từ {audio_file.filename}",
+                "language": lang,
+                "description": voice_desc,
                 "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             })
         CUSTOM_VOICES_FILE.write_text(json.dumps(custom_voices, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -465,7 +589,7 @@ async def clone_voice(
         # Save to history
         save_to_history(
             filename=out_name,
-            title=f"Nhân bản: {v_name}",
+            title=f"Nhân bản ({'Tiếng Nhật' if lang in ('ja', 'japanese', 'tiếng nhật') else 'Tiếng Việt'}): {v_name}",
             service="Voice Cloning",
             voice=v_name,
             duration_s=dur_s,
@@ -474,7 +598,7 @@ async def clone_voice(
         )
 
         buf = io.BytesIO()
-        sf.write(buf, audio, SAMPLE_RATE, format="WAV")
+        sf.write(buf, audio, sample_rate_used, format="WAV")
         buf.seek(0)
         return StreamingResponse(
             buf,
@@ -482,7 +606,7 @@ async def clone_voice(
             headers={
                 "X-Elapsed-Seconds": f"{elapsed_s:.2f}",
                 "X-Audio-Duration": f"{dur_s:.2f}",
-                "X-Voice-Name": v_name,
+                "X-Voice-Name": urllib.parse.quote(v_name),
                 "Content-Disposition": f"attachment; filename={out_name}",
             },
         )
