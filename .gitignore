@@ -7,13 +7,23 @@ wheels/
 *.egg-info
 .pytest_cache/
 
-# Virtual environments
+# Virtual environments & env
 .venv
 .xpu_venv
-outputs/
 .env
+
+# Ignore audio files globally by default
 *.wav
 *.mp3
+
+# Ignore temporary audio history and generated files
+outputs/generated/*.wav
+outputs/generated/history.json
+
+# EXCEPT cloned voice references and custom voices list (allow syncing across devices)
+!outputs/references/*.wav
+!outputs/references/*.mp3
+!outputs/generated/custom_voices.json
 
 # Finetune Data & Checkpoints
 finetune/dataset/
